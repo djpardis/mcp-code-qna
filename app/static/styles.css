@@ -1,0 +1,192 @@
+/* Main styles for MCP Code Repository Q&A */
+body {
+    padding-top: 2rem;
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1000px;
+}
+
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.result-container {
+    margin-top: 2rem;
+}
+
+.loading {
+    display: none;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+pre {
+    background-color: #f7f7f9;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.code-header {
+    background-color: #f1f1f1;
+    border-bottom: 1px solid #e1e4e8;
+    padding: 0.5rem 1rem;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.repo-path {
+    font-family: monospace;
+    background-color: #eff0f2;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+    font-weight: normal;
+}
+
+.connection-status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #dc3545;
+    margin-right: 0.5rem;
+}
+
+.connected {
+    background-color: #28a745;
+}
+
+/* Sample questions styling */
+.sample-questions .badge {
+    margin-right: 0.5rem;
+    cursor: pointer;
+}
+
+.sample-questions .badge:hover {
+    background-color: #0056b3;
+}
+
+/* Code formatting */
+pre {
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+code {
+    font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.85rem;
+}
+
+/* Details/summary styling for collapsible code */
+details {
+    margin: 1rem 0 1.5rem 0;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+summary {
+    padding: 8px 12px;
+    background-color: #f1f2f3;
+    border-bottom: 1px solid #e1e4e8;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+}
+
+summary:hover {
+    background-color: #e1e4e8;
+}
+
+summary:focus {
+    outline: none;
+}
+
+summary::before {
+    content: '▶';
+    font-size: 0.8em;
+    margin-right: 8px;
+    color: #586069;
+    transition: transform 0.2s;
+}
+
+details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+/* PrismJS line numbers plugin styling */
+pre.line-numbers {
+    position: relative;
+    padding-left: 3.8em;
+    counter-reset: linenumber;
+}
+
+pre.line-numbers > code {
+    position: relative;
+    white-space: inherit;
+}
+
+.line-numbers .line-numbers-rows {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    font-size: 100%;
+    left: -3.8em;
+    width: 3em;
+    letter-spacing: -1px;
+    border-right: 1px solid #999;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.line-numbers-rows > span {
+    display: block;
+    counter-increment: linenumber;
+}
+
+.line-numbers-rows > span:before {
+    content: counter(linenumber);
+    color: #999;
+    display: block;
+    padding-right: 0.8em;
+    text-align: right;
+}
+
+details pre {
+    margin: 0;
+    border-radius: 0;
+    border-top: none;
+}
+
+/* Ensure pre blocks inside details don't have padding-top */
+details pre {
+    padding: 12px;
+}
+
+/* Ensure code blocks following details have proper spacing */
+details + pre {
+    margin-top: 1.5rem;
+}
+
+/* Code syntax highlighting - for Prism.js */
+code[class*="language-"],
+pre[class*="language-"] {
+    background-color: #f6f8fa !important;
+}
