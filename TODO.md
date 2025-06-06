@@ -98,7 +98,16 @@
 - [ ] Add contextual retrieval that considers related code blocks
 - [ ] Use cross-encoder models for improved relevance ranking
 
+### Question Understanding Improvements
+- [ ] Replace regex patterns with robust intent classification
+- [ ] Implement entity extraction to better identify code elements (classes, functions, etc.)
+- [ ] Add question decomposition for complex queries
+- [ ] Integrate spaCy or HuggingFace transformers for NLP analysis
+- [ ] Handle ambiguity resolution when questions reference ambiguous code entities
+- [ ] Support a wider range of question types and formats
+
 ### Answer Generation Improvements
+- [ ] Generate more relevant and diverse answers with comprehensive context
 - [ ] Use more sophisticated templating for different question types
 - [ ] Implement a self-critique and improvement loop
 - [ ] Add support for conversational context
