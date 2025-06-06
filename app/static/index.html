@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code repository Q&A system</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Code repository Q&A system</h2>
+                <div>
+                    <span class="connection-status" id="connectionStatus"></span>
+                    <span id="statusText">Checking server...</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 repo-path-container">
+                    <label for="repoPath" class="form-label">Repository path</label>
+                    <input type="text" class="form-control" id="repoPath" placeholder="/path/to/your/code/repository">
+                </div>
+                <div class="mb-3">
+                    <label for="question" class="form-label">Question</label>
+                    <textarea class="form-control" id="question" rows="3" placeholder="Type your question then press Enter ↩ to submit."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Processing your question... This may take a minute for large repositories.</p>
+        </div>
+
+        <div class="result-container" id="resultContainer" style="display: none;">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0">Answer</h4>
+                </div>
+                <div class="card-body">
+                    <div id="answer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4">
+            <h5>Sample Questions to Try:</h5>
+            <ul>
+                <li><span class="sample-question">What does class UserService do?</span></li>
+                <li><span class="sample-question">How is the OrderProcessor class implemented?</span></li>
+                <li><span class="sample-question">Explain how the payment processing works</span></li>
+                <li><span class="sample-question">What functions does UserService have?</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/script.js"></script>
+</body>
+</html>
