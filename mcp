@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# MCP Code QA - Simple CLI wrapper
+
+REPO_PATH=""
+PORT="8000"
+HOST="0.0.0.0"
+REBUILD=false
+
+# Display help message
+function show_help {
+  echo "MCP Code QA - Simple CLI"
+  echo ""
+  echo "Usage:"
+  echo "  ./mcp serve [repo_path] [options]    Start the MCP server"
+  echo "  ./mcp ask [repo_path] \"question\"     Ask a question directly"
+  echo ""
+  echo "Options:"
+  echo "  -p, --port PORT     Specify server port (default: 8000)"
+  echo "  -h, --host HOST     Specify host (default: 0.0.0.0)"
+  echo "  -r, --rebuild       Force rebuild index"
+  echo "  --help              Show this help message"
+  echo ""
+  echo "Examples:"
+  echo "  ./mcp serve ./my-repo -p 8001"
+  echo "  ./mcp ask ./my-repo \"What does class UserService do?\""
+}
+
+# Process arguments
+COMMAND=$1
+shift
+
+if [[ "$COMMAND" == "--help" || -z "$COMMAND" ]]; then
+  show_help
+  exit 0
+fi
+
+if [[ -z "$1" ]]; then
+  echo "Error: Repository path is required"
+  show_help
+  exit 1
+fi
+
+REPO_PATH=$1
+shift
+
+# Process additional arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -p|--port)
+      PORT="$2"
+      shift 2
+      ;;
+    -h|--host)
+      HOST="$2"
+      shift 2
+      ;;
+    -r|--rebuild)
+      REBUILD=true
+      shift
+      ;;
+    --help)
+      show_help
+      exit 0
+      ;;
+    *)
+      # For the 'ask' command, the remaining argument is the question
+      if [[ "$COMMAND" == "ask" ]]; then
+        QUESTION="$1"
+        shift
+      else
+        echo "Unknown option: $1"
+        show_help
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+# Execute the appropriate command
+if [[ "$COMMAND" == "serve" ]]; then
+  CMD="python3 -m app.cli --repo_path \"$REPO_PATH\" serve --port $PORT --host $HOST"
+  
+  if [[ "$REBUILD" == "true" ]]; then
+    CMD="$CMD --rebuild_index"
+  fi
+  
+  echo "Starting MCP server for repository: $REPO_PATH"
+  echo "Server will be available at http://$HOST:$PORT"
+  eval "$CMD"
+  
+elif [[ "$COMMAND" == "ask" ]]; then
+  if [[ -z "$QUESTION" ]]; then
+    echo "Error: Question is required for the 'ask' command"
+    show_help
+    exit 1
+  fi
+  
+  echo "Asking: $QUESTION"
+  python3 -m app.cli --repo_path "$REPO_PATH" ask "$QUESTION"
+  
+else
+  echo "Unknown command: $COMMAND"
+  show_help
+  exit 1
+fi

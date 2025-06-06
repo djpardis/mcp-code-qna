@@ -1,0 +1,20 @@
+# Core dependencies
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.4.2
+
+# RAG components
+langchain==0.0.312
+langchain_community==0.0.16
+sentence-transformers==2.2.2
+huggingface-hub==0.19.4  # Specific version for compatibility
+faiss-cpu==1.7.4  # Vector storage
+pyparsing==3.1.1  # For parsing Python code
+
+# Code parsing and AST
+ast-comments==1.0.1
+libcst==1.1.0
+
+# Utilities
+python-dotenv==1.0.0
+numpy>=1.22.0
