@@ -37,3 +37,4 @@ ENV/
 # Local environment
 .env
 .env.local
+evaluation_results/
