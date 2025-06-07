@@ -1,11 +1,14 @@
 # MCP Code Repository Q&A Project - TODO List
 
-## Project Setup
+## Project Setup & Organization
 - [x] Create project structure
 - [x] Setup dependency management (requirements.txt)
 - [x] Create a README
 - [x] Complete comprehensive installation and setup documentation
 - [x] Add troubleshooting guide for common issues
+- [x] Organize project files into logical directories
+- [x] Create dedicated directories for scripts, evaluation tools, and reports
+- [x] Update documentation to reflect the new organization
 
 ## MCP Server Implementation (DELIVERABLE #1)
 - [x] Implement basic MCP server following the protocol specification
@@ -59,24 +62,23 @@
 
 ## Agent Implementation (DELIVERABLE #3)
 - [x] Create an agent that uses the MCP server as a tool
-- [x] Implement repo analysis capabilities
-- [x] Generate architecture reports including:
-  - [x] General architecture description
-  - [x] External dependencies analysis
-  - [x] Main design patterns identification
-- [x] Create user-friendly report formatting
-  - [x] JSON format for programmatic use
-  - [x] Markdown format for text-based viewing
-  - [x] HTML format with interactive features
-- [x] Write comprehensive usage documentation
-- [x] Create example commands for running the agent
+- [x] Implement architecture analysis functionality
+- [x] Implement dependency analysis functionality
+- [x] Implement design pattern identification
+- [x] Generate comprehensive reports in multiple formats (JSON, Markdown, HTML)
+- [x] Add error handling and server connection verification
+- [x] Organize reports by repository type
+- [x] Move agent to dedicated scripts directory
+- [x] Add repository type parameter for better organization
 
 ### Agent Enhancements (Future)
-- [ ] Add progress indicators during report generation
+- [ ] Add progress indicators for long-running analyses
 - [ ] Implement caching to avoid redundant questions
-- [ ] Add ability to customize report sections
-- [ ] Support for comparing multiple repositories
-- [ ] Include code quality metrics in reports
+- [ ] Allow customizing which report sections to generate
+- [ ] Support comparison reports across multiple repositories
+- [ ] Integrate code quality metrics into reports
+- [ ] Add command-line completion and interactive mode
+- [ ] Create a web UI for the agent
 - [ ] Document all available options and parameters
 - [ ] Add sample outputs and expected results
 - [ ] Create README specifically for the agent component

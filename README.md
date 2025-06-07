@@ -105,10 +105,13 @@ The MCP Agent is a powerful tool that leverages the MCP server to perform compre
 
 ```bash
 # Basic usage
-./mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/your/repo
+./scripts/mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/your/repo
 
 # Specify a custom output directory for reports
-./mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/your/repo --output-dir ./my-reports
+./scripts/mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/your/repo --output-dir ./my-reports
+
+# Specify repository type for better organization
+./scripts/mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/your/repo --repo-type grip
 ```
 
 #### Report Types
@@ -144,7 +147,7 @@ Reports and evaluation results are automatically organized by repository type:
 You can specify the repository type when running the MCP Agent:
 
 ```bash
-./mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/repo --repo-type grip
+./scripts/mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/repo --repo-type grip
 ```
 
 #### Example Report Contents
@@ -398,19 +401,37 @@ The MCP Server consists of three main components:
 
 ```
 .
-├── app/                      # Main application package
-│   ├── generator/            # Answer generation components
-│   ├── indexer/              # Code indexing and parsing
-│   ├── retriever/            # Semantic search and retrieval
-│   ├── static/               # Web UI static assets
-│   ├── cli.py                # Command-line interface
-│   ├── main.py               # FastAPI application
-│   └── mcp_web_server.py     # Web UI server implementation
-├── tests/                    # Test suite
-├── mcp                       # CLI script entry point
-├── requirements.txt          # Project dependencies
-├── setup.py                  # Installation script
-└── README.md                 # This file
+├── app/                # Core application code
+│   ├── generator/     # Answer generation components
+│   ├── indexer/       # Code indexing and parsing
+│   ├── retriever/     # Semantic search and retrieval
+│   ├── static/        # Static web assets
+│   ├── mcp_web_server.py  # Main MCP server implementation
+│   ├── main.py        # FastAPI application
+│   └── cli.py         # Command-line interface
+├── scripts/           # Utility scripts
+│   ├── mcp_agent.py   # Repository analysis agent
+│   └── report_template.html # HTML template for agent reports
+├── evaluation_scripts/ # Evaluation tools
+│   ├── evaluate_mcp.py # Main evaluation script
+│   ├── run_comprehensive_evaluation.py # Comprehensive evaluation
+│   ├── run_simple_evaluation.py # Simple evaluation
+│   └── run_test_evaluation.py # Test-based evaluation
+├── tests/            # Test files
+│   ├── test_grip_dataset_evaluation.py # Grip dataset tests
+│   └── test_sample_repo_question_understanding.py # Sample repo tests
+├── reports/          # Repository analysis reports
+│   ├── sample_repo/  # Sample Python repository reports
+│   ├── grip/         # Grip repository reports
+│   └── other/        # Other repository reports
+├── evaluation_results/ # MCP server evaluation results
+│   ├── sample_repo/  # Sample Python repository evaluations
+│   └── grip/         # Grip repository evaluations
+├── mcp              # CLI script entry point
+├── setup.py          # Installation script
+├── requirements.txt  # Project dependencies
+├── TODO.md           # Project tasks and roadmap
+└── README.md         # This file
 ```
 
 ## RAG System Details
