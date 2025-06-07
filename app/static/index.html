@@ -23,6 +23,11 @@
                 <div class="mb-4 repo-path-container">
                     <label for="repoPath" class="form-label">Repository path</label>
                     <input type="text" class="form-control" id="repoPath" placeholder="/path/to/your/code/repository">
+                    <div class="form-text mt-1">
+                        Example paths: 
+                        <a href="#" class="example-path">/Users/pardisnoorzad/Documents/sample-python-repo</a> | 
+                        <a href="#" class="example-path">/Users/pardisnoorzad/Documents/grip-no-tests</a>
+                    </div>
                 </div>
                 
                 <div class="mb-3">
@@ -54,42 +59,63 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6>Purpose questions</h6>
+                        <h6 class="repo-heading">Grip Repository Questions</h6>
+                        <p class="repo-path-note">Use with: <code>/Users/pardisnoorzad/Documents/grip-no-tests</code></p>
+                        
+                        <h6 class="mt-3">Usage questions</h6>
                         <div class="sample-question-list">
-                            <div>What does the DatabaseConnection class do?</div>
-                            <div>What is the purpose of the authenticate method?</div>
+                            <div>How do I run grip from command line on a specific port?</div>
+                            <div>Can I modify and distribute the Grip software, and are there any conditions I need to follow?</div>
+                            <div>What command-line arguments does grip accept?</div>
+                            <div>How do I install grip and its dependencies?</div>
+                            <div>How can I use grip to preview a specific markdown file?</div>
+                        </div>
+                        
+                        <h6 class="mt-3">Purpose questions</h6>
+                        <div class="sample-question-list">
+                            <div>What is ReadmeNotFoundError exception? Please give a usage example.</div>
+                            <div>DirectoryReader - please explain the purpose of the class.</div>
+                            <div>What is the purpose of the app.py file?</div>
+                            <div>What does the render_content function do?</div>
+                            <div>What is the purpose of the path_type function?</div>
                         </div>
                         
                         <h6 class="mt-3">Implementation questions</h6>
                         <div class="sample-question-list">
-                            <div>How is the UserService implemented?</div>
-                            <div>How does the authentication system work?</div>
-                        </div>
-                        
-                        <h6 class="mt-3">Method listing questions</h6>
-                        <div class="sample-question-list">
-                            <div>What methods does the DatabaseConnection class have?</div>
-                            <div>List all the methods in OrderProcessor</div>
+                            <div>How does Grip handle the rendering of GitHub-style task lists?</div>
+                            <div>How does Grip handle GitHub API authentication for rate limiting?</div>
+                            <div>How does Grip parse command line arguments?</div>
+                            <div>How does Grip handle different markdown flavors?</div>
+                            <div>What is the implementation of the export feature?</div>
+                            <div>How does Grip implement caching for API responses?</div>
                         </div>
                     </div>
                     
                     <div class="col-md-6">
-                        <h6>Code walkthrough questions</h6>
+                        <h6 class="repo-heading">Sample Python Repository Questions</h6>
+                        <p class="repo-path-note">Use with: <code>/Users/pardisnoorzad/Documents/sample-python-repo</code></p>
+                        
+                        <h6 class="mt-3">Statistical questions</h6>
                         <div class="sample-question-list">
-                            <div>Walk me through the process_order method</div>
-                            <div>Explain step by step how the authentication works</div>
+                            <div>How many functions are there in the codebase?</div>
+                            <div>Count the number of classes in the project</div>
                         </div>
                         
-                        <h6 class="mt-3">Error handling questions</h6>
+                        <h6 class="mt-3">Purpose questions</h6>
                         <div class="sample-question-list">
-                            <div>How does the UserService handle errors?</div>
-                            <div>What happens when authentication fails?</div>
+                            <div>What does the processData function do?</div>
+                            <div>Explain the purpose of UserManager class</div>
+                            <div>What is API?</div>
+                            <div>Explain the user_authentication_service</div>
+                            <div>What does the UserAuthenticationService do?</div>
+                            <div>Explain the userAuthenticationService</div>
                         </div>
                         
-                        <h6 class="mt-3">Statistics questions</h6>
+                        <h6 class="mt-3">Implementation & Method questions</h6>
                         <div class="sample-question-list">
-                            <div>How many functions are there in total?</div>
-                            <div>Count all the classes in the codebase</div>
+                            <div>How is the authentication system implemented?</div>
+                            <div>What methods does the FileHandler class have?</div>
+                            <div>How do I use the connect_database function?</div>
                         </div>
                     </div>
                 </div>

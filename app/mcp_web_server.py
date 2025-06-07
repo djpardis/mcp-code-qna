@@ -1,37 +1,72 @@
 #!/usr/bin/env python3
 """
-Debug server script to identify component initialization issues
+MCP Web Server for code repository question answering
 """
 import os
 import sys
+import argparse
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-# Add app directory to path for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.indexer.code_indexer import CodeIndexer
 from app.retriever.retriever import Retriever, RetrievedChunk
 from app.generator.answer_generator import AnswerGenerator
 
-# Initialize components directly
-repo_path = "/Users/pardisnoorzad/Documents/sample-python-repo"
-print(f"Initializing components with repo path: {repo_path}")
-indexer = CodeIndexer(repo_path=repo_path)
-print("Building index...")
-indexer.load_or_build_index()
-retriever = Retriever(indexer=indexer)
+# Parse command line arguments
+def parse_args():
+    parser = argparse.ArgumentParser(description="MCP Web Server for code repository question answering")
+    parser.add_argument("--repo_path", "-r", help="Path to the code repository (optional)")
+    parser.add_argument("--rebuild", action="store_true", help="Force rebuild the index")
+    parser.add_argument("--port", "-p", type=int, default=8000, help="Port to run the server on")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to run the server on")
+    return parser.parse_args()
+
+# Initialize components
+args = parse_args()
+repo_path = args.repo_path
+
+# Initialize with empty/default values if no repo path provided
+indexer = None
+retriever = None
+
+if repo_path:
+    print(f"Initializing components with repo path: {repo_path}")
+    try:
+        indexer = CodeIndexer(repo_path=repo_path)
+        print("Building index...")
+        
+        # Handle rebuild flag
+        if args.rebuild:
+            print("Forcing index rebuild...")
+            indexer.build_index()
+        else:
+            indexer.load_or_build_index()
+            
+        retriever = Retriever(indexer=indexer)
+        print("Components initialized successfully with repository")
+    except Exception as e:
+        print(f"Warning: Failed to initialize with repo path {repo_path}: {str(e)}")
+        print("Server will start without a default repository")
+        repo_path = None
+else:
+    print("No repository path provided. Server will start in dynamic mode.")
+    print("Each question must include a valid repo_path parameter.")
+
+# Always initialize the generator
 generator = AnswerGenerator()
-print("Components initialized successfully")
 
 # Initialize FastAPI app
 app = FastAPI(title="Debug MCP Server")
 
 # Mount static files
-static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app", "static")
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+print(f"Static directory: {static_dir}")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
@@ -51,17 +86,276 @@ async def get_mcp_metadata():
 @app.get("/list_resources")
 async def list_resources():
     # Return a resource for asking questions about the repository
+    repo_path = None if indexer is None else indexer.repo_path
+    
     return {
         "resources": [
             {
                 "uri": "questions",
                 "title": "Repository Q&A",
                 "description": "Ask questions about the code repository",
-                "metadata": {"repo_path": indexer.repo_path}
+                "metadata": {"repo_path": repo_path}
             }
         ],
         "cursor": None
     }
+
+@app.post("/question")
+async def handle_question(request: Request):
+    """Handle a question about the code repository"""
+    try:
+        # Parse request data
+        data = await request.json()
+        if "question" not in data:
+            return {"error": "No question provided"}
+            
+        question = data["question"]
+        print(f"\nDEBUG: Received question: {data}")
+        
+        # Get repository path from request or use global default
+        current_repo_path = None
+        current_indexer = None
+        current_retriever = None
+        
+        # Check if request includes a repo path
+        if "repo_path" in data and data["repo_path"]:
+            custom_path = data["repo_path"]
+            if os.path.isdir(custom_path):
+                current_repo_path = custom_path
+                print(f"Using custom repo path from request: {custom_path}")
+                
+                # Create a new indexer and retriever for this specific request
+                try:
+                    current_indexer = CodeIndexer(repo_path=current_repo_path)
+                    current_indexer.load_or_build_index()
+                    current_retriever = Retriever(indexer=current_indexer)
+                except Exception as e:
+                    return {
+                        "content": f"Error initializing repository: {str(e)}",
+                        "metadata": {
+                            "question": question,
+                            "format": "text/markdown",
+                            "error": str(e)
+                        }
+                    }
+            else:
+                return {
+                    "content": f"The provided repository path '{custom_path}' is not a valid directory.",
+                    "metadata": {
+                        "question": question,
+                        "format": "text/markdown",
+                        "error": "Invalid repository path"
+                    }
+                }
+        # Use global repo path if available
+        elif repo_path:
+            current_repo_path = repo_path
+            current_indexer = indexer
+            current_retriever = retriever
+            print(f"Using default repo path: {current_repo_path}")
+        else:
+            # No repo path provided in request and no default repo path
+            return {
+                "content": "No repository path provided. Please include a 'repo_path' parameter in your request.",
+                "metadata": {
+                    "question": question,
+                    "format": "text/markdown",
+                    "error": "Missing repository path"
+                }
+            }
+        
+        # Simple statistics question detection
+        is_statistics_question = False
+        question_lower = question.lower()
+        if ('how many' in question_lower or 'count' in question_lower) and \
+           any(term in question_lower for term in ['function', 'method', 'class', 'file', 'module']):
+            is_statistics_question = True
+            print("Detected statistics question")
+            
+        # Generate answer based on question type
+        if is_statistics_question:
+            print("Detected statistics question")
+            try:
+                # Use AST to parse Python files and count code elements
+                import ast
+                
+                class CodeVisitor(ast.NodeVisitor):
+                    def __init__(self):
+                        self.classes = 0
+                        self.functions = 0
+                        self.methods = 0
+                        self.current_class = None
+                    
+                    def visit_ClassDef(self, node):
+                        self.classes += 1
+                        old_class = self.current_class
+                        self.current_class = True
+                        self.generic_visit(node)
+                        self.current_class = old_class
+                    
+                    def visit_FunctionDef(self, node):
+                        if self.current_class:
+                            self.methods += 1
+                        else:
+                            self.functions += 1
+                        self.generic_visit(node)
+                
+                # Verify repository path exists
+                if not os.path.exists(current_repo_path):
+                    print(f"WARNING: Repository path {current_repo_path} does not exist")
+                    return {
+                        "content": f"Error: Repository path {current_repo_path} does not exist",
+                        "metadata": {
+                            "question": question,
+                            "format": "text/markdown",
+                            "error": "Repository path does not exist"
+                        }
+                    }
+                
+                # Find all Python files in the repository
+                python_files = []
+                for root, _, files in os.walk(current_repo_path):
+                    for file in files:
+                        if file.endswith('.py'):
+                            python_files.append(os.path.join(root, file))
+                
+                print(f"Found {len(python_files)} Python files")
+                
+                # Count code elements in each file
+                counts = {'function': 0, 'method': 0, 'class': 0, 'module': len(python_files)}
+                counts['file'] = counts['module']  # Alias for module count
+                
+                # Additional statistics
+                counts['lines'] = 0
+                counts['empty_lines'] = 0
+                counts['comment_lines'] = 0
+                
+                # Track file types
+                file_types = {}
+                
+                for file_path in python_files:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        try:
+                            content = f.read()
+                            lines = content.split('\n')
+                            counts['lines'] += len(lines)
+                            
+                            # Count empty lines and comment lines
+                            for line in lines:
+                                line = line.strip()
+                                if not line:
+                                    counts['empty_lines'] += 1
+                                elif line.startswith('#'):
+                                    counts['comment_lines'] += 1
+                            
+                            # Parse the file and count elements
+                            tree = ast.parse(content)
+                            visitor = CodeVisitor()
+                            visitor.visit(tree)
+                            
+                            counts['function'] += visitor.functions
+                            counts['method'] += visitor.methods
+                            counts['class'] += visitor.classes
+                            
+                            # Track file extension
+                            ext = os.path.splitext(file_path)[1]
+                            file_types[ext] = file_types.get(ext, 0) + 1
+                            
+                        except Exception as e:
+                            print(f"Error parsing {file_path}: {str(e)}")
+                
+                # Generate the answer
+                file_count = len(python_files)
+                answer_parts = ["## Code Statistics\n"]
+                
+                # Basic counts
+                answer_parts.append(f"The codebase contains:")
+                answer_parts.append(f"- **{counts['function']}** top-level functions")
+                answer_parts.append(f"- **{counts['method']}** class methods")
+                answer_parts.append(f"- **{counts['class']}** classes")
+                answer_parts.append(f"- **{file_count}** Python files")
+                answer_parts.append(f"- **{counts['lines']}** total lines of code")
+                answer_parts.append(f"- **{counts['empty_lines']}** empty lines")
+                answer_parts.append(f"- **{counts['comment_lines']}** comment lines")
+                
+                # File type distribution
+                answer_parts.append(f"\n### File Type Distribution")
+                for ext, count in file_types.items():
+                    answer_parts.append(f"- **{ext}**: {count} files")
+                
+                # Additional insights
+                answer_parts.append(f"\n### Additional Insights")
+                if counts['class'] > 0:
+                    avg_methods = counts['method'] / counts['class']
+                    answer_parts.append(f"- Average methods per class: **{avg_methods:.1f}**")
+                else:
+                    answer_parts.append(f"- No classes found in the codebase")
+                
+                if file_count > 0:
+                    avg_functions_per_file = (counts['function'] + counts['method']) / file_count
+                    answer_parts.append(f"- Average functions/methods per file: **{avg_functions_per_file:.1f}**")
+                    avg_classes_per_file = counts['class'] / file_count
+                    answer_parts.append(f"- Average classes per file: **{avg_classes_per_file:.1f}**")
+                    avg_lines_per_file = counts['lines'] / file_count
+                    answer_parts.append(f"- Average lines per file: **{avg_lines_per_file:.1f}**")
+                else:
+                    answer_parts.append(f"- No Python files found in the codebase")
+                
+                # Return the statistics answer directly
+                return {
+                    "content": "\n\n".join(answer_parts),
+                    "metadata": {
+                        "question": question,
+                        "format": "text/markdown"
+                    }
+                }
+            except Exception as e:
+                import traceback
+                print(f"\nERROR in statistics calculation: {str(e)}")
+                print(traceback.format_exc())
+                
+                # Return a graceful error message
+                return {
+                    "content": "## Statistics Error\n\nI encountered an error while calculating code statistics. This might be due to issues with the repository structure or parsing errors.\n\nError details: " + str(e),
+                    "metadata": {
+                        "question": question,
+                        "format": "text/markdown"
+                    }
+                }
+        
+        # For all other question types, use the retriever and generator
+        if current_retriever is None:
+            return {
+                "content": "Error: No retriever available for this repository. Please check the repository path.",
+                "metadata": {
+                    "question": question,
+                    "format": "text/markdown",
+                    "error": "No retriever available"
+                }
+            }
+        
+        relevant_chunks = current_retriever.retrieve(question)
+        print(f"\nDEBUG: Retrieved {len(relevant_chunks)} relevant chunks")
+        
+        # Generate answer
+        answer = generator.generate(question, relevant_chunks)
+        print(f"\nDEBUG: Generated answer")
+        
+        return {
+            "content": answer,
+            "metadata": {
+                "question": question,
+                "format": "text/markdown"
+            }
+        }
+    except Exception as e:
+        import traceback
+        print(f"ERROR: {str(e)}")
+        print(traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Error processing question: {str(e)}"}
+        )
 
 @app.post("/read_resource")
 async def read_resource(request: Request):
@@ -453,5 +747,6 @@ async def read_resource(request: Request):
         )
 
 if __name__ == "__main__":
-    print("Starting debug server on http://localhost:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print(f"Starting MCP web server on http://{args.host}:{args.port}")
+    print(f"Repository path: {repo_path}")
+    uvicorn.run(app, host=args.host, port=args.port)

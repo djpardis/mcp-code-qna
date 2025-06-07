@@ -41,14 +41,19 @@ This project implements a [Model Context Protocol (MCP)](https://modelcontextpro
 A user-friendly web interface is available for the easiest interaction:
 
 ```bash
-# Start the server with web UI enabled
-./mcp serve /path/to/your/repo
+# Start the server with a default repository
+./mcp serve --repo_path /path/to/your/repo
+
+# Or start the server in dynamic mode (no default repository)
+./mcp serve
 ```
 
 Then open your browser to [http://localhost:8000](http://localhost:8000) to access the web interface.
 
 The web UI provides:
 - A simple form to enter your questions
+- A repository path input field to specify which code repository to analyze
+- Sample questions organized by category to help you get started
 - Markdown rendering of answers with syntax highlighting for code
 - Connection status indicator
 - Sample questions to try

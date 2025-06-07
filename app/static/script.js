@@ -72,6 +72,34 @@ function setupEventListeners() {
             submitQuestion(e);
         }
     });
+    
+    // Make example repository paths clickable
+    document.querySelectorAll('.example-path').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            repoPath.value = this.textContent;
+        });
+    });
+    
+    // Make sample questions clickable
+    document.querySelectorAll('.sample-question-list div').forEach(item => {
+        item.addEventListener('click', function() {
+            question.value = this.textContent;
+            question.focus();
+            
+            // Find the closest repo-path-note and extract the path
+            const repoSection = this.closest('.col-md-6');
+            if (repoSection) {
+                const pathNote = repoSection.querySelector('.repo-path-note code');
+                if (pathNote) {
+                    repoPath.value = pathNote.textContent;
+                }
+            }
+        });
+        
+        // Add cursor pointer style
+        item.style.cursor = 'pointer';
+    });
 }
 
 // Sample questions are now just for display
@@ -90,17 +118,14 @@ async function submitQuestion() {
     
     try {
         console.log('Sending question:', question.value);
-        const response = await fetch(`${API_URL}/read_resource`, {
+        const response = await fetch(`${API_URL}/question`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                uri: 'questions',
-                parameters: {
-                    question: question.value,
-                    repo_path: repoPath.value
-                }
+                question: question.value,
+                repo_path: repoPath.value
             })
         });
         
