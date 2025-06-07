@@ -39,15 +39,23 @@
 
 
 ## Evaluation System (DELIVERABLE #2)
-- [ ] Create dedicated evaluation script to run automatically against all questions
+- [x] Create dedicated evaluation script to run automatically against all questions
+- [x] Implement evaluation metrics to measure answer quality (MCP Quality Score)
+- [x] Generate numeric scores for system performance
+- [x] Document limitations and areas for improvement
+- [x] Add instructions for running the evaluation independently
 - [ ] Set up automated testing with reference QA pairs from github.com/Modelcode-ai/grip_qa
-- [ ] Implement evaluation metrics to measure answer quality
 - [ ] Create comparison system between generated and reference answers
-- [ ] Generate numeric scores for system performance
 - [ ] Develop a comprehensive evaluation report document
 - [ ] Include screenshots and examples of system in action
-- [ ] Document limitations and areas for improvement
-- [ ] Add instructions for running the evaluation independently
+
+## Improvements Based on Evaluation Results
+- [ ] Reduce error rates (currently 50-60%) by improving question understanding
+- [ ] Enhance repository-specific context handling to better match questions to repos
+- [ ] Implement similarity scoring with reference answers when available
+- [ ] Add continuous evaluation pipeline to track improvements over time
+- [ ] Optimize response times for complex questions
+- [ ] Add more detailed error messages when questions can't be answered
 
 ## Agent Implementation (DELIVERABLE #3)
 - [ ] Create an agent that uses the MCP server as a tool

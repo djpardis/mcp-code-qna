@@ -8,6 +8,8 @@ This project implements a [Model Context Protocol (MCP)](https://modelcontextpro
 - Intelligent code chunking based on logical blocks (functions, classes, etc.)
 - Semantic search for finding relevant code snippets
 - Natural language answers with relevant code references
+- Dynamic repository path support for querying multiple repositories without server restart
+- Comprehensive evaluation framework with quality metrics
 
 ## Getting Started
 
@@ -22,19 +24,71 @@ This project implements a [Model Context Protocol (MCP)](https://modelcontextpro
 2. Install dependencies using one of the following methods:
 
    **Option 1: Using requirements.txt (Basic)**
-   ```
+   ```bash
    python3 -m pip install -r requirements.txt
    ```
    
    **Option 2: Using setup.py (Recommended)**
-   ```
+   ```bash
    python3 -m pip install -e .
    ```
    This will install all dependencies and additional components like the spaCy language model.
-   
+
    > **Note:** This project uses `python3 -m pip` instead of standalone `pip` command to ensure compatibility with the correct Python installation. This is the recommended approach by Python packaging authorities as it's more explicit about which Python environment you're installing packages into.
 
-### Usage
+### Running the MCP Server
+
+```bash
+# Start the MCP server with a specific repository path
+python -m app.mcp_web_server --repo-path /path/to/your/repo
+
+# Or start with a specific port (default is 8000)
+python -m app.mcp_web_server --repo-path /path/to/your/repo --port 8002
+```
+
+### Accessing the Web Interface
+
+Open `http://localhost:8000` (or your specified port) in your browser to access the web interface.
+
+### Running Evaluations
+
+```bash
+# Run evaluation on the Grip repository
+python run_test_evaluation.py --server-url http://localhost:8002 \
+  --repo-path /path/to/grip-repo \
+  --repo-type grip
+
+# Run evaluation on the Sample Python repository
+python run_test_evaluation.py --server-url http://localhost:8002 \
+  --repo-path /path/to/sample-python-repo \
+  --repo-type sample_repo
+```
+
+### End-to-End Testing
+
+To run a complete evaluation of the MCP server:
+
+1. Start the MCP server in one terminal:
+   ```bash
+   python -m app.mcp_web_server --port 8002
+   ```
+
+2. Run evaluations for both repositories in another terminal:
+   ```bash
+   # Run evaluation on the Grip repository
+   python run_test_evaluation.py --server-url http://localhost:8002 \
+     --repo-path /Users/pardisnoorzad/Documents/grip-no-tests \
+     --repo-type grip
+   
+   # Run evaluation on the Sample Python repository
+   python run_test_evaluation.py --server-url http://localhost:8002 \
+     --repo-path /Users/pardisnoorzad/Documents/sample-python-repo \
+     --repo-type sample_repo
+   ```
+
+3. Review the evaluation results in the `evaluation_results` directory
+
+## Usage
 
 #### Web UI Interface (Recommended)
 
@@ -49,6 +103,103 @@ A user-friendly web interface is available for the easiest interaction:
 ```
 
 Then open your browser to [http://localhost:8000](http://localhost:8000) to access the web interface.
+
+## Evaluation Framework
+
+The MCP server includes a comprehensive evaluation framework to assess its performance across different repositories and question types.
+
+### MCP Quality Score (MQS)
+
+The evaluation framework calculates an MCP Quality Score (MQS) based on several key metrics:
+
+- **Response Time (30%)**: Rewards faster response times with diminishing returns
+- **Error Rate (70%)**: Percentage of questions that receive error-free responses
+
+The MQS is a score from 0-10 that provides an overall assessment of the system's performance.
+
+### Document Assessment Criteria
+
+When evaluating the quality of answers, the following criteria are used:
+
+1. **Accuracy**: Does the answer correctly address the question and provide factually correct information?
+   - Excellent (9-10): Answer is completely accurate with precise details
+   - Good (7-8): Answer is mostly accurate with minor imprecisions
+   - Acceptable (5-6): Answer has some inaccuracies but is generally helpful
+   - Poor (0-4): Answer contains significant factual errors
+
+2. **Relevance**: Does the answer directly address the question asked?
+   - Excellent (9-10): Answer directly addresses all aspects of the question
+   - Good (7-8): Answer addresses the main points of the question
+   - Acceptable (5-6): Answer is somewhat related but misses key aspects
+   - Poor (0-4): Answer is largely unrelated to the question
+
+3. **Completeness**: Does the answer provide a comprehensive response?
+   - Excellent (9-10): Answer covers all aspects thoroughly
+   - Good (7-8): Answer covers most important aspects
+   - Acceptable (5-6): Answer provides basic information but lacks depth
+   - Poor (0-4): Answer is incomplete or superficial
+
+4. **Code Context**: Does the answer include relevant code snippets when appropriate?
+   - Excellent (9-10): Includes precisely relevant code with good explanations
+   - Good (7-8): Includes relevant code with adequate explanations
+   - Acceptable (5-6): Includes some code but with limited explanation
+   - Poor (0-4): Missing relevant code or includes irrelevant code
+
+### Running Evaluations
+
+The evaluation framework uses the exact questions from the test files (`test_sample_repo_question_understanding.py` and `run_comprehensive_evaluation.py`). These questions are also displayed in the web interface to ensure consistency between testing and user interaction.
+
+```bash
+# Run evaluation on the sample Python repository
+python run_test_evaluation.py --server-url http://localhost:8002 \
+  --repo-path /path/to/sample-python-repo \
+  --repo-type sample_repo
+
+# Run evaluation on the grip repository
+python run_test_evaluation.py --server-url http://localhost:8002 \
+  --repo-path /path/to/grip-repo \
+  --repo-type grip
+```
+
+Make sure the MCP server is running before executing the evaluation script. The default server port is 8000, but you can specify a different port with the `--server-url` parameter.
+
+The evaluation script will:
+1. Extract questions from the web interface that match the test files
+2. Send each question to the MCP server with the specified repository path
+3. Measure response time and error rate
+4. Calculate the MCP Quality Score (MQS)
+5. Save detailed results to JSON files in the evaluation_results directory
+
+The evaluation generates detailed reports with:
+
+- Overall quality metrics including MQS
+- Per-question performance analysis
+- Response time statistics
+- Error rate analysis
+
+### Interpreting Results
+
+MQS scores can be interpreted as follows:
+
+- **9-10**: Excellent - Answers are highly accurate and relevant with fast response times
+- **7-8**: Good - Most answers are accurate with occasional minor issues
+- **5-6**: Acceptable - Answers are generally helpful but may contain inaccuracies
+- **3-4**: Needs improvement - Significant issues with accuracy or relevance
+- **0-2**: Poor - Major problems with answer quality
+
+For production use, aim for an MQS of 7 or higher.
+
+### Recent Evaluation Results
+
+#### Grip Repository Performance
+- **MCP Quality Score (MQS)**: 6.16/10
+- **Average Response Time**: 0.22s
+- **Error Rate**: 50.00%
+
+#### Sample Python Repository Performance
+- **MCP Quality Score (MQS)**: 5.49/10
+- **Average Response Time**: 0.20s
+- **Error Rate**: 60.00%
 
 The web UI provides:
 - A simple form to enter your questions
