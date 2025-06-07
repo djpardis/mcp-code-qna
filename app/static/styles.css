@@ -1,4 +1,36 @@
 /* Main styles for MCP Code Repository Q&A */
+
+/* Sample Questions Styles */
+.sample-questions-card {
+    background-color: #e0f7fa;
+    margin-top: 1rem;
+    margin-bottom: 0;
+    border-color: #26c6da;
+}
+
+.sample-questions-card .card-header {
+    background-color: #26c6da;
+    color: #fff;
+}
+
+.sample-question-list {
+    margin-bottom: 0;
+}
+
+.sample-q {
+    color: #0277bd;
+    cursor: pointer;
+    display: block;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+.sample-q:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #01579b;
+}
 body {
     padding-top: 2rem;
     background-color: #f8f9fa;

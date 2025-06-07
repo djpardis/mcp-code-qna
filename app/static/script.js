@@ -38,7 +38,7 @@ async function checkServer() {
         const response = await fetch(`${API_URL}/.well-known/mcp`);
         if (response.ok) {
             connectionStatus.classList.add('connected');
-            statusText.textContent = 'Server connected';
+            statusText.textContent = 'MCP server connected';
             
             // Try to get repository path from server
             try {
@@ -74,15 +74,9 @@ function setupEventListeners() {
     });
 }
 
-// Set up sample question functionality
+// Sample questions are now just for display
 function setupSampleQuestions() {
-    const sampleQuestions = document.querySelectorAll('.sample-question');
-    sampleQuestions.forEach(item => {
-        item.addEventListener('click', function() {
-            question.value = this.textContent;
-            submitBtn.click();
-        });
-    });
+    // No click functionality needed
 }
 
 // Submit question to server
