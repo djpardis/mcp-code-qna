@@ -79,10 +79,11 @@ done
 
 # Execute the appropriate command
 if [[ "$COMMAND" == "serve" ]]; then
-  CMD="python3 -m app.cli --repo_path \"$REPO_PATH\" serve --port $PORT --host $HOST"
+  # Use the new mcp_web_server.py directly
+  CMD="python3 app/mcp_web_server.py \"$REPO_PATH\" --port $PORT --host $HOST"
   
   if [[ "$REBUILD" == "true" ]]; then
-    CMD="$CMD --rebuild_index"
+    CMD="$CMD --rebuild"
   fi
   
   echo "Starting MCP server for repository: $REPO_PATH"
