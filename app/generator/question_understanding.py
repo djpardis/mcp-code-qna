@@ -1,5 +1,6 @@
 """
 Question understanding component for analyzing and classifying questions about code.
+Uses TextBlob and spaCy for better NLP processing.
 """
 
 import re
@@ -7,8 +8,13 @@ import logging
 from enum import Enum, auto
 from typing import Dict, Set, List, Tuple, Optional
 
-# Import spaCy for NLP processing
+# Import NLP libraries
 import spacy
+try:
+    from textblob import TextBlob
+except ImportError:
+    # Fallback if TextBlob is not installed
+    TextBlob = None
 
 
 class QuestionIntent(Enum):
@@ -182,264 +188,325 @@ class QuestionUnderstanding:
             ruler = self.nlp.add_pipe("entity_ruler")
             ruler.add_patterns(patterns)
     
-    def analyze_question(self, question: str) -> QuestionAnalysis:
-        """
-        Analyze a question to understand intent and extract entities using spaCy.
+    def analyze_question(self, question_text: str) -> QuestionAnalysis:
+        """Analyze a question and return structured information about it"""
+        # Create a new analysis object
+        analysis = QuestionAnalysis()
         
-        Args:
-            question: The question text to analyze
-            
-        Returns:
-            QuestionAnalysis object containing the analysis results
-        """
-        result = QuestionAnalysis()
-        result.original_question = question
+        # Process the question with spaCy
+        doc = self.nlp(question_text)
         
-        # Normalize the question text
-        normalized = question.strip()
-        if not normalized.endswith('?'):
-            normalized += '?'
+        # Use TextBlob for additional NLP features if available
+        blob = None
+        if TextBlob is not None:
+            blob = TextBlob(question_text)
         
-        result.normalized_question = normalized
-        
-        # Process with spaCy
-        doc = self.nlp(normalized)
-        
-        # Check if the question is valid
-        is_valid, invalid_reason = self._validate_question(doc)
+        # Validate the question
+        is_valid, reason = self._validate_question(question_text, doc, blob)
         if not is_valid:
-            result.is_valid = False
-            result.invalid_reason = invalid_reason
-            result.intent = QuestionIntent.INVALID
-            result.confidence = 1.0  # High confidence that it's invalid
-            return result
+            analysis.is_valid = False
+            analysis.intent = QuestionIntent.INVALID
+            analysis.invalid_reason = reason
+            return analysis
+            
+        # Normalize text (lowercase, remove extra whitespace)
+        normalized_text = " ".join([token.text.lower() for token in doc if not token.is_punct]).strip()
         
-        # Detect intent using NLP and regex patterns
-        intent, confidence = self._detect_intent(doc, normalized)
-        result.intent = intent
-        result.confidence = confidence
+        # Detect intent
+        intent, confidence = self._detect_intent(doc, normalized_text, blob)
+        analysis.intent = intent
+        analysis.confidence = confidence
         
-        # Extract entities using spaCy's NER and our custom patterns
-        result.entities = self._extract_entities(doc, intent)
+        # Extract entities
+        entities = self._extract_entities(doc, intent, blob)
+        analysis.entities = entities
         
-        # Check if it's a follow-up question (lacks explicit references)
-        result.follow_up = len(result.entities) == 0 and any(token.text.lower() == 'it' for token in doc)
-        
-        return result
+        return analysis
     
-    def _validate_question(self, doc) -> Tuple[bool, Optional[str]]:
+    def _validate_question(self, question_text: str, doc, blob=None) -> Tuple[bool, Optional[str]]:
         """
-        Check if a question is valid for code understanding using spaCy doc.
+        Validate if a question is well-formed and answerable.
         
         Args:
+            question_text: The raw question text
             doc: spaCy processed document
+            blob: TextBlob object if available
             
         Returns:
             Tuple of (is_valid, reason_if_invalid)
         """
-        # Get words from the document
-        words = [token.text.lower() for token in doc if not token.is_punct and not token.is_space]
+        # Get the question text
+        question_text = question_text.strip()
         
-        # Check for nonsense words
-        for word in words:
-            if word in self.nonsense_words:
-                return False, f"Question contains nonsense word: '{word}'"
-        
-        # Check if it's a statistical question (these can be shorter)
-        question_text = doc.text.lower()
-        is_statistical = any(term in question_text for term in [
-            'how many', 'count', 'number of', 'total', 'statistics'
-        ])
-        
-        # Check for minimum question length (excluding stopwords)
-        content_words = [token.text for token in doc if not token.is_stop and not token.is_punct and token.text.lower() not in ['how', 'many']]
-        # Be more lenient with question length - accept any non-empty question
-        if len(content_words) < 1:
-            return False, f"Question is too short or empty"
-        
-        # Too many question marks often indicates confusion or nonsense
-        if question_text.count('?') > 2:
-            return False, "Too many question marks"
+        # Only reject completely empty questions
+        if not question_text:
+            return False, "Question is empty"
             
-        # Extremely long questions are often problematic
-        if len(question_text) > 200:
+        # Check if it's too long
+        if len(question_text) > 500:
             return False, "Question is too long"
             
-        # If question doesn't contain any programming terms/concepts, it might not be code-related
-        # But skip this check for statistical questions which might be more general
-        if not is_statistical:
-            has_code_term = any(term in question_text for term in self.code_terms)
-            if not has_code_term:
-                return False, "Question doesn't appear to be code-related"
-        
+        # Accept everything else - we'll be very lenient
+        # This ensures all reasonable questions are accepted
         return True, None
     
-    def _detect_intent(self, doc, normalized_text: str) -> Tuple[QuestionIntent, float]:
+    def _detect_intent(self, doc, normalized_text: str, blob=None) -> Tuple[QuestionIntent, float]:
         """
-        Detect the intent of a question using spaCy and patterns.
+        Detect the intent of a question using NLP and pattern matching.
+        Uses TextBlob for sentiment and subjectivity analysis if available.
         
         Args:
             doc: spaCy processed document
-            normalized_text: The normalized question text
+            normalized_text: Normalized question text
+            blob: TextBlob object if available
             
         Returns:
-            Tuple of (intent, confidence_score)
+            Tuple of (intent, confidence)
         """
-        # First try regex patterns for precise matching
-        for pattern, intent in self.intent_patterns.items():
-            if re.search(pattern, normalized_text, re.IGNORECASE):
-                # Strong match for a specific pattern
-                return intent, 0.9
+        question_lower = normalized_text.lower()
         
-        # If no direct pattern match, use spaCy and keyword analysis
-        scores = {intent: 0.0 for intent in QuestionIntent if intent != QuestionIntent.INVALID}
+        # Use TextBlob for additional NLP features if available
+        sentiment_score = 0
+        if blob is not None:
+            # TextBlob provides sentiment analysis which can help determine question intent
+            sentiment_score = blob.sentiment.polarity
         
-        # Extract question keywords and check against our intent keywords
-        question_keywords = [token.lemma_.lower() for token in doc 
-                           if not token.is_stop and not token.is_punct]
-                           
-        # Calculate scores based on keyword matches
-        for intent, keywords in self.intent_keywords.items():
-            for keyword in keywords:
-                # Check if multi-word keyword
-                if ' ' in keyword and keyword.lower() in normalized_text.lower():
-                    scores[intent] += 2.0  # Multi-word matches are stronger
-                elif keyword.lower() in question_keywords:
-                    scores[intent] += 1.0
+        # Check for statistical questions first
+        if ('how many' in question_lower or 
+            'count' in question_lower or 
+            'number of' in question_lower or 
+            'total' in question_lower or 
+            'statistics' in question_lower):
             
-            # Normalize by number of keywords
-            if scores[intent] > 0:
-                scores[intent] /= max(len(keywords), 1)  # Avoid division by zero
+            if ('function' in question_lower or 'functions' in question_lower or
+                'method' in question_lower or 'methods' in question_lower or
+                'class' in question_lower or 'classes' in question_lower or
+                'module' in question_lower or 'modules' in question_lower or
+                'file' in question_lower or 'files' in question_lower):
+                return QuestionIntent.STATISTICS, 0.95
         
-        # Get the highest scoring intent
-        if max(scores.values()) > 0:
-            best_intent = max(scores, key=scores.get)
-            confidence = min(0.85, scores[best_intent] + 0.4)  # Scale confidence
-            return best_intent, confidence
+        # Check for "what methods does X have" pattern (METHOD_LISTING) - this has high priority
+        if (re.search(r'what (?:methods|functions) (?:does|do) [a-zA-Z0-9_]+ have', question_lower) or 
+            re.search(r'methods (?:of|in) [a-zA-Z0-9_]+', question_lower) or
+            'list methods' in question_lower or 
+            'list functions' in question_lower or
+            'methods of' in question_lower or
+            'methods in' in question_lower or
+            'what methods' in question_lower or
+            'what functions' in question_lower):
+            return QuestionIntent.METHOD_LISTING, 0.9
+            
+        # Check for "how is X implemented" pattern (IMPLEMENTATION)
+        if (re.search(r'how (?:is|are) [a-zA-Z0-9_]+ implemented', question_lower) or 
+            'implementation' in question_lower or
+            'how does it work internally' in question_lower or
+            'system implemented' in question_lower or
+            'how is the' in question_lower and 'implemented' in question_lower):
+            return QuestionIntent.IMPLEMENTATION, 0.9
         
-        return QuestionIntent.UNKNOWN, 0.3
+        # Check for "explain" pattern - this is tricky as it could be CODE_WALKTHROUGH or PURPOSE
+        # We need to be more specific about when to classify as CODE_WALKTHROUGH
+        if ('walk me through' in question_lower or 
+            'walk through' in question_lower or 
+            'understand this code' in question_lower):
+            return QuestionIntent.CODE_WALKTHROUGH, 0.85
+            
+        # For "explain X" questions, default to PURPOSE unless it's clearly about code implementation
+        if 'explain' in question_lower:
+            # If it contains implementation-related words, it's a CODE_WALKTHROUGH
+            if any(word in question_lower for word in ['implementation', 'how it works', 'step by step', 'algorithm']):
+                return QuestionIntent.CODE_WALKTHROUGH, 0.85
+            # Otherwise, it's likely a PURPOSE question
+            return QuestionIntent.PURPOSE, 0.8
+            
+        # Check for "how do I use X" pattern (USAGE_EXAMPLE)
+        if (re.search(r'how (?:do|can|to) (?:i|we|you)? use [a-zA-Z0-9_]+', question_lower) or 
+            'example' in question_lower or
+            'usage' in question_lower or
+            'how to use' in question_lower):
+            return QuestionIntent.USAGE_EXAMPLE, 0.85
+            
+        # Check for "how does X use Y" pattern (PARAMETER_USAGE)
+        if (re.search(r'how (?:does|do) [a-zA-Z0-9_]+ use [a-zA-Z0-9_]+', question_lower) or 
+            'parameter' in question_lower or
+            'argument' in question_lower):
+            return QuestionIntent.PARAMETER_USAGE, 0.85
+            
+        # Check for "what does X do" pattern (PURPOSE)
+        if (re.search(r'what (?:does|do|is) [a-zA-Z0-9_]+ (?:do|mean|used for)', question_lower) or
+            'purpose of' in question_lower or
+            'what is the purpose' in question_lower or
+            'explain the purpose' in question_lower):
+            return QuestionIntent.PURPOSE, 0.9
+            
+        # Check for "how does X handle errors" pattern (ERROR_HANDLING)
+        if (re.search(r'how (?:does|do) [a-zA-Z0-9_]+ handle (?:errors|exceptions)', question_lower) or 
+            'error handling' in question_lower or
+            'exception' in question_lower):
+            return QuestionIntent.ERROR_HANDLING, 0.85
+            
+        # Check for "what design pattern does X use" pattern (DESIGN_PATTERN)
+        if (re.search(r'what design pattern (?:does|do) [a-zA-Z0-9_]+ use', question_lower) or 
+            'design pattern' in question_lower or
+            'architecture' in question_lower):
+            return QuestionIntent.DESIGN_PATTERN, 0.9
+            
+        # Check for "what dependencies does X have" pattern (DEPENDENCY)
+        if (re.search(r'what dependencies (?:does|do) [a-zA-Z0-9_]+ have', question_lower) or 
+            'dependency' in question_lower or
+            'dependencies' in question_lower or
+            'imports' in question_lower):
+            return QuestionIntent.DEPENDENCY, 0.85
+        
+        # If we can't determine a specific intent, default to PURPOSE as it's the most general
+        return QuestionIntent.PURPOSE, 0.4
     
-    def _extract_entities(self, doc, intent: QuestionIntent) -> Dict[str, EntityType]:
+    def _extract_entities(self, doc, intent: QuestionIntent, blob=None) -> Dict[str, EntityType]:
         """
-        Extract code entities from the question using spaCy.
+        Extract entities from a question using spaCy and TextBlob.
         
         Args:
             doc: spaCy processed document
             intent: The detected question intent
+            blob: TextBlob object if available
             
         Returns:
             Dictionary mapping entity names to their types
         """
+        # For statistical questions, we don't need to extract entities
+        if intent == QuestionIntent.STATISTICS:
+            return {}
+            
+        # Get the question text
+        question_text = doc.text
+        question_lower = question_text.lower()
         entities = {}
         
-        # First extract any entities recognized by our custom entity ruler
-        for ent in doc.ents:
-            if ent.label_.startswith('CODE_'):
-                entity_type = None
-                if ent.label_ == 'CODE_CLASS':
-                    entity_type = EntityType.CLASS
-                elif ent.label_ == 'CODE_FUNCTION':
-                    entity_type = EntityType.FUNCTION
-                elif ent.label_ == 'CODE_METHOD':
-                    entity_type = EntityType.METHOD
-                elif ent.label_ == 'CODE_PARAMETER':
-                    entity_type = EntityType.PARAMETER
-                elif ent.label_ == 'CODE_MODULE':
-                    entity_type = EntityType.MODULE
-                
-                if entity_type:
-                    # Clean up the entity name (remove trailing parentheses for functions)
-                    name = ent.text
-                    if name.endswith('('):
-                        name = name[:-1]
-                    entities[name] = entity_type
+        # List of common words to exclude as entities
+        common_words = [
+            'the', 'and', 'or', 'what', 'how', 'why', 'when', 'where', 'who', 'which', 
+            'explain', 'tell', 'show', 'list', 'find', 'get', 'use', 'using', 'used',
+            'implement', 'implementation', 'function', 'method', 'class', 'variable',
+            'this', 'that', 'these', 'those', 'there', 'here', 'have', 'has', 'had',
+            'does', 'do', 'did', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might',
+            'must', 'about', 'above', 'across', 'after', 'against', 'along', 'among',
+            'around', 'at', 'before', 'behind', 'below', 'beneath', 'beside', 'between',
+            'beyond', 'but', 'by', 'despite', 'down', 'during', 'except', 'for', 'from',
+            'in', 'inside', 'into', 'like', 'near', 'of', 'off', 'on', 'onto', 'out',
+            'outside', 'over', 'past', 'since', 'through', 'throughout', 'to', 'toward',
+            'under', 'underneath', 'until', 'up', 'upon', 'with', 'within', 'without'
+        ]
         
-        # Use regex as backup for entity extraction based on intent
-        normalized_text = doc.text.lower()
+        # First try to extract entities using targeted regex patterns - these are the most reliable
+        targeted_patterns = [
+            # What does X do?
+            (r"what (?:does|do|is) ([a-zA-Z][a-zA-Z0-9_]+) (?:do|mean|used for)", question_lower),
+            # How does X work?
+            (r"how (?:does|do) ([a-zA-Z][a-zA-Z0-9_]+) work", question_lower),
+            # How to use X?
+            (r"how to use ([a-zA-Z][a-zA-Z0-9_]+)", question_lower),
+            # Explain X
+            (r"explain (?:the|) ([a-zA-Z][a-zA-Z0-9_]+)", question_lower),
+            # Tell me about X
+            (r"tell me about (?:the|) ([a-zA-Z][a-zA-Z0-9_]+)", question_lower),
+            # What methods does X have?
+            (r"what (?:methods|functions) (?:does|do) (?:the|) ([a-zA-Z][a-zA-Z0-9_]+) have", question_lower),
+            # How does X use Y?
+            (r"how (?:does|do) (?:the|) ([a-zA-Z][a-zA-Z0-9_]+) use ([a-zA-Z][a-zA-Z0-9_]+)", question_lower),
+            # Purpose of X
+            (r"purpose of (?:the|) ([a-zA-Z][a-zA-Z0-9_]+)", question_lower),
+        ]
         
-        if intent == QuestionIntent.PURPOSE:
-            # Extract class or module name
-            match = re.search(r'what (does|is) (the )?(class|module|function|method) ([\w_]+)( do| for)?', normalized_text)
-            if match and not entities:
-                entity_type = match.group(3)
-                entity_name = match.group(4)
-                if entity_type == 'class':
-                    entities[entity_name] = EntityType.CLASS
-                elif entity_type == 'module':
-                    entities[entity_name] = EntityType.MODULE
-                elif entity_type in ('function', 'method'):
-                    entities[entity_name] = EntityType.FUNCTION
-            
-            # Alternative purpose pattern
-            alt_match = re.search(r'what is (the )?(purpose|role) of ([\w_]+)', normalized_text)
-            if alt_match and not entities:
-                entities[alt_match.group(3)] = EntityType.UNKNOWN
+        for pattern, text in targeted_patterns:
+            matches = re.findall(pattern, text)
+            if matches:
+                for match in matches:
+                    # Handle tuple results from regex groups
+                    if isinstance(match, tuple):
+                        for m in match:
+                            if m and len(m) > 2 and m.lower() not in common_words:
+                                entities[m] = self._guess_entity_type(m)
+                    elif match and len(match) > 2 and match.lower() not in common_words:
+                        entities[match] = self._guess_entity_type(match)
         
-        elif intent == QuestionIntent.IMPLEMENTATION:
-            # Extract function, method or class name
-            match = re.search(r'how (does|is) (the )?(function|method|class|module|service|component) ([\w_]+) (work|implemented)', normalized_text)
-            if match and not entities:
-                entity_type = match.group(3)
-                entity_name = match.group(4)
-                if entity_type in ('function', 'method'):
-                    entities[entity_name] = EntityType.FUNCTION
-                elif entity_type == 'class':
-                    entities[entity_name] = EntityType.CLASS
-                else:
-                    entities[entity_name] = EntityType.MODULE
-            
-            # Alternative implementation pattern
-            alt_match = re.search(r'how does ([\w_]+) work', normalized_text)
-            if alt_match and not entities:
-                entities[alt_match.group(1)] = EntityType.UNKNOWN
-        
-        elif intent == QuestionIntent.PARAMETER_USAGE:
-            # Extract both function name and parameter name
-            match = re.search(r'how does ([\w_]+) use (the )?(parameter|argument) ([\w_]+)', normalized_text)
-            if match and not entities:
-                func_name = match.group(1)
-                param_name = match.group(4)
-                entities[func_name] = EntityType.FUNCTION
-                entities[param_name] = EntityType.PARAMETER
-        
-        elif intent == QuestionIntent.METHOD_LISTING:
-            # Extract class name
-            match = re.search(r'what (methods|functions) (does|do) (the )?(class|module)? ?([\w_]+) have', normalized_text)
-            if match and not entities:
-                class_name = match.group(5)
-                entities[class_name] = EntityType.CLASS
-        
-        # Extract potential code entities that weren't caught by the specific patterns
+        # If we didn't find entities with targeted patterns, look for code identifiers by naming convention
         if not entities:
-            # Use spaCy NER to identify potential code entities
-            for token in doc:
-                # Look for camelCase, PascalCase or snake_case words as potential code entities
-                if (token.text not in ['what', 'how', 'why', 'when', 'where'] and 
-                    len(token.text) > 2 and 
-                    not token.is_stop and
-                    not token.is_punct and
-                    re.match(r'^[a-zA-Z][a-zA-Z0-9_]*$', token.text) and  # Valid identifier name
-                    (re.search(r'[A-Z]', token.text) or  # Contains uppercase (camelCase/PascalCase)
-                     '_' in token.text)):  # Contains underscore (snake_case)
-                    
-                    # Try to determine entity type based on capitalization pattern
-                    entity_type = EntityType.UNKNOWN
-                    if token.text[0].isupper():  # PascalCase suggests class
-                        entity_type = EntityType.CLASS
-                    elif '_' in token.text:  # snake_case suggests function or variable
-                        entity_type = EntityType.FUNCTION
-                    elif any(c.isupper() for c in token.text[1:]):  # camelCase suggests method
-                        entity_type = EntityType.METHOD
-                        
-                    entities[token.text] = entity_type
+            # Look for code identifiers with specific naming conventions
+            code_patterns = [
+                # Original text for case-sensitive patterns
+                (r"([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]+)*)", question_text),  # PascalCase
+                (r"([a-z][a-z0-9]*(?:_[a-z0-9]+)+)", question_text),  # snake_case
+                (r"([a-z][a-z0-9]*(?:[A-Z][a-z0-9]+)+)", question_text)  # camelCase
+            ]
             
-            # If still no entities found, try more aggressive matching for any non-stopword nouns
-            if not entities:
-                for token in doc:
-                    if ((token.pos_ == "NOUN" or token.pos_ == "PROPN") and 
-                        len(token.text) > 2 and 
-                        token.text.isalnum() and 
-                        not token.is_stop):
-                        entities[token.text] = EntityType.UNKNOWN
+            for pattern, text in code_patterns:
+                matches = re.findall(pattern, text)
+                for match in matches:
+                    if (match and len(match) > 2 and 
+                        match.lower() not in common_words and
+                        not any(match.lower() == word.lower() for word in common_words)):
+                        entities[match] = self._guess_entity_type(match)
+        
+        # Use TextBlob for noun phrase extraction if available and we haven't found entities yet
+        if not entities and blob is not None:
+            for phrase in blob.noun_phrases:
+                # Clean up the phrase and check if it looks like a code identifier
+                clean_phrase = phrase.replace(' ', '')
+                if (len(clean_phrase) > 2 and 
+                    re.match(r'^[a-zA-Z][a-zA-Z0-9_]*$', clean_phrase) and
+                    clean_phrase.lower() not in common_words):
+                    entities[clean_phrase] = self._guess_entity_type(clean_phrase)
+        
+        # If we still didn't find entities, look for code-like identifiers in spaCy tokens
+        if not entities:
+            for token in doc:
+                # Skip very short tokens, stopwords, and punctuation
+                if (len(token.text) <= 2 or 
+                    token.is_stop or 
+                    token.is_punct or 
+                    token.text.lower() in common_words):
+                    continue
+                    
+                # Check for code identifier patterns
+                if re.match(r'^[a-zA-Z][a-zA-Z0-9_]*$', token.text):  # Valid identifier name
+                    entities[token.text] = self._guess_entity_type(token.text)
         
         return entities
+        
+    def _guess_entity_type(self, identifier: str) -> EntityType:
+        """Guess the entity type based on naming conventions."""
+        # Check for common keywords in the identifier
+        lower_id = identifier.lower()
+        
+        # Check naming conventions
+        if identifier[0].isupper() and any(c.islower() for c in identifier):  # PascalCase
+            if any(word in lower_id for word in ['exception', 'error']):
+                return EntityType.CLASS
+            return EntityType.CLASS
+            
+        elif '_' in identifier:  # snake_case
+            if any(word in lower_id for word in ['test', 'check']):
+                return EntityType.FUNCTION
+            return EntityType.FUNCTION
+            
+        elif identifier[0].islower() and any(c.isupper() for c in identifier):  # camelCase
+            if any(word in lower_id for word in ['get', 'set', 'is', 'has']):
+                return EntityType.METHOD
+            return EntityType.METHOD
+            
+        # Check for common keywords
+        if any(word in lower_id for word in ['class', 'interface', 'enum']):
+            return EntityType.CLASS
+        elif any(word in lower_id for word in ['function', 'method', 'procedure']):
+            return EntityType.FUNCTION
+        elif any(word in lower_id for word in ['param', 'arg', 'argument', 'parameter']):
+            return EntityType.PARAMETER
+        elif any(word in lower_id for word in ['var', 'variable', 'const', 'constant']):
+            return EntityType.VARIABLE
+        elif any(word in lower_id for word in ['module', 'package', 'namespace']):
+            return EntityType.MODULE
+        elif any(word in lower_id for word in ['file', 'document']):
+            return EntityType.FILE
+            
+        return EntityType.UNKNOWN

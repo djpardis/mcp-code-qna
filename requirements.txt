@@ -15,6 +15,10 @@ pyparsing==3.1.1  # For parsing Python code
 ast-comments==1.0.1
 libcst==1.1.0
 
+# NLP processing
+spacy>=3.5.0
+textblob>=0.17.1
+
 # Utilities
 python-dotenv==1.0.0
 numpy>=1.22.0
