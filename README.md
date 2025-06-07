@@ -90,7 +90,81 @@ To run a complete evaluation of the MCP server:
 
 ## Usage
 
-#### Web UI Interface (Recommended)
+### MCP Agent
+
+The MCP Agent is a powerful tool that leverages the MCP server to perform comprehensive repository analysis. It generates detailed reports about a codebase's architecture, dependencies, and design patterns.
+
+#### Features
+
+- **Architecture Analysis**: Examines the overall structure, components, and organization of the repository
+- **Dependency Analysis**: Identifies external libraries, frameworks, and how dependencies are managed
+- **Design Pattern Detection**: Recognizes common design patterns used in the codebase
+- **Multi-format Reports**: Generates reports in JSON, Markdown, and interactive HTML formats
+
+#### Usage
+
+```bash
+# Basic usage
+./mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/your/repo
+
+# Specify a custom output directory for reports
+./mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/your/repo --output-dir ./my-reports
+```
+
+#### Report Types
+
+1. **JSON Report** (`reports/{repo_type}/{repo_name}_report_{timestamp}.json`)
+   - Raw structured data for programmatic processing
+   - Contains all questions and answers from the analysis
+
+2. **Markdown Report** (`reports/{repo_type}/{repo_name}_report_{timestamp}.md`)
+   - Human-readable formatted text
+   - Perfect for viewing in GitHub or any markdown viewer
+
+3. **HTML Report** (`reports/{repo_type}/{repo_name}_report_{timestamp}.html`)
+   - Interactive web-based report with formatting and styling
+   - Includes collapsible sections and syntax highlighting
+   - Best for sharing with team members
+
+#### Organized Directory Structure
+
+Reports and evaluation results are automatically organized by repository type:
+
+```
+├── reports/
+│   ├── sample_repo/   # Reports for the sample Python repository
+│   ├── grip/          # Reports for the Grip repository
+│   └── other/         # Reports for other repositories
+│
+└── evaluation_results/
+    ├── sample_repo/   # Evaluation results for sample Python repository
+    └── grip/          # Evaluation results for Grip repository
+```
+
+You can specify the repository type when running the MCP Agent:
+
+```bash
+./mcp_agent.py --server-url http://localhost:8002 --repo-path /path/to/repo --repo-type grip
+```
+
+#### Example Report Contents
+
+- **Architecture Analysis**
+  - Overall architecture description
+  - Component interaction diagrams
+  - Entry points and code organization
+  
+- **Dependency Analysis**
+  - External libraries and frameworks
+  - Dependency management approach
+  - Core vs. development dependencies
+  
+- **Design Pattern Identification**
+  - Detected design patterns with confidence levels
+  - Code snippets showing pattern implementations
+  - Explanations of how patterns are used
+
+### Web UI Interface (Recommended)
 
 A user-friendly web interface is available for the easiest interaction:
 
@@ -280,13 +354,45 @@ The server will be available at http://localhost:8000 (or your specified port)
    http://localhost:8000/docs
    ```
 
-## Architecture
+## System Components and Workflow
 
-The system consists of three main components:
+The MCP Code Repository Q&A Project consists of three main components that work together to provide a complete code understanding solution:
+
+1. **MCP Server** - The core RAG (Retrieval-Augmented Generation) engine that processes questions about code
+2. **Evaluation Framework** - Tools to measure and assess the quality of MCP responses
+3. **MCP Agent** - An intelligent agent that uses the MCP server to generate comprehensive repository analyses
+
+### How Components Work Together
+
+```
+┌─────────────────┐     Questions     ┌─────────────────┐
+│                 │ ◄───────────────► │                 │
+│    MCP Server   │                   │     Web UI      │
+│                 │ ─────────────────►│                 │
+└─────────┬───────┘     Answers      └─────────────────┘
+          │
+          │ Questions/Answers
+          ▼
+┌─────────────────┐                  ┌─────────────────┐
+│   Evaluation    │◄────────────────►│    MCP Agent    │
+│    Framework    │   Uses Server    │                 │
+└─────────────────┘                  └─────────────────┘
+          │                                    │
+          │                                    │
+          ▼                                    ▼
+┌─────────────────┐                  ┌─────────────────┐
+│   Evaluation    │                  │  Architecture   │
+│     Results     │                  │     Reports     │
+└─────────────────┘                  └─────────────────┘
+```
+
+### MCP Server Architecture
+
+The MCP Server consists of three main components:
 
 1. **Code Indexer**: Parses the repository, extracts logical code blocks, and creates embeddings
 2. **Retriever**: Performs semantic search to find relevant code chunks for a question
-3. **Generator**: Produces natural language answers with relevant code snippets
+3. **Generator**: Uses the retrieved code chunks to generate accurate answers with relevant code snippets
 
 ## Project Structure
 
