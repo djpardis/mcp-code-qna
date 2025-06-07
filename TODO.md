@@ -37,13 +37,6 @@
 - [ ] Add caching for faster responses
 - [ ] Optimize memory usage for processing large repositories
 
-## Improvements
-- [x] Clean up project structure and remove unnecessary files
-- [x] Create simplified CLI interface (mcp script) for easier usage
-- [ ] Add more comprehensive docstring parsing: Parse structured information from different docstring formats (Google, NumPy, reStructuredText) to extract parameter descriptions, return types, exceptions, and examples for more precise and formatted answers
-- [ ] Improve chunking to handle comments and complex code structures
-- [ ] Support multiple programming languages
-- [x] Implement web UI for easier interaction
 
 ## Evaluation System (DELIVERABLE #2)
 - [ ] Create dedicated evaluation script to run automatically against all questions
@@ -71,6 +64,15 @@
 - [ ] Create README specifically for the agent component
 
 ## Comprehensive Improvements Roadmap
+
+### Bug Fixes
+- [x] Fix chunking logic for large files
+- [x] Improve error handling for malformed code
+- [x] Fix memory leaks in the indexing process
+- [x] Address race conditions in concurrent processing
+- [x] Resolve encoding issues with special characters
+- [ ] Fix statistics question handling to accurately count functions, methods, classes and files
+- [ ] Improve error handling for specific question types
 
 ### MCP Server Improvements
 - [ ] Implement rate limiting and request throttling
@@ -123,6 +125,14 @@
 - [ ] Implement advanced caching strategies
 - [ ] Optimize database schemas for faster retrieval
 - [ ] Use async processing for non-blocking operations
+
+### General Improvements
+- [x] Clean up project structure and remove unnecessary files
+- [x] Create simplified CLI interface (mcp script) for easier usage
+- [ ] Add more comprehensive docstring parsing: Parse structured information from different docstring formats (Google, NumPy, reStructuredText) to extract parameter descriptions, return types, exceptions, and examples for more precise and formatted answers
+- [ ] Improve chunking to handle comments and complex code structures
+- [ ] Support multiple programming languages
+- [ ] Fix Python environment handling with uv instead of pip for better dependency management
 
 ### User Experience Improvements
 - [x] Create a web UI for interactive code exploration
