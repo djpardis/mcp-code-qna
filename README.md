@@ -19,10 +19,18 @@ This project implements a [Model Context Protocol (MCP)](https://modelcontextpro
 ### Installation
 
 1. Clone this repository
-2. Install dependencies:
+2. Install dependencies using one of the following methods:
+
+   **Option 1: Using requirements.txt (Basic)**
    ```
    python3 -m pip install -r requirements.txt
    ```
+   
+   **Option 2: Using setup.py (Recommended)**
+   ```
+   python3 -m pip install -e .
+   ```
+   This will install all dependencies and additional components like the spaCy language model.
    
    > **Note:** This project uses `python3 -m pip` instead of standalone `pip` command to ensure compatibility with the correct Python installation. This is the recommended approach by Python packaging authorities as it's more explicit about which Python environment you're installing packages into.
 
@@ -123,6 +131,25 @@ The system consists of three main components:
 1. **Code Indexer**: Parses the repository, extracts logical code blocks, and creates embeddings
 2. **Retriever**: Performs semantic search to find relevant code chunks for a question
 3. **Generator**: Produces natural language answers with relevant code snippets
+
+## Project Structure
+
+```
+.
+├── app/                      # Main application package
+│   ├── generator/            # Answer generation components
+│   ├── indexer/              # Code indexing and parsing
+│   ├── retriever/            # Semantic search and retrieval
+│   ├── static/               # Web UI static assets
+│   ├── cli.py                # Command-line interface
+│   ├── main.py               # FastAPI application
+│   └── mcp_web_server.py     # Web UI server implementation
+├── tests/                    # Test suite
+├── mcp                       # CLI script entry point
+├── requirements.txt          # Project dependencies
+├── setup.py                  # Installation script
+└── README.md                 # This file
+```
 
 ## RAG System Details
 
