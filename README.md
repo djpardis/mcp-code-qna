@@ -456,8 +456,8 @@ You can generate the sample Python repository using the included script:
 
 ```bash
 # Clone this repository if you haven't already
-git clone https://github.com/your-username/mcp-code-qa-project.git
-cd mcp-code-qa-project
+git clone https://github.com/djpardis/mcp-code-qna.git
+cd mcp-code-qna
 
 # Run the script to generate the sample repository
 python -m scripts.generate_sample_repo
