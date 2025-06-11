@@ -75,15 +75,15 @@ To run a complete evaluation of the MCP server:
 
 2. Run evaluations for both repositories in another terminal:
    ```bash
-   # Run evaluation on the Grip repository
-   python run_test_evaluation.py --server-url http://localhost:8002 \
-     --repo-path /Users/pardisnoorzad/Documents/grip-no-tests \
-     --repo-type grip
-   
-   # Run evaluation on the Sample Python repository
-   python run_test_evaluation.py --server-url http://localhost:8002 \
-     --repo-path /Users/pardisnoorzad/Documents/sample-python-repo \
-     --repo-type sample_repo
+    # Run evaluation on the Grip repository
+    python run_test_evaluation.py --server-url http://localhost:8002 \
+      --repo-path /path/to/grip-repo \
+      --repo-type grip
+    
+    # Run evaluation on the Sample Python repository
+    python run_test_evaluation.py --server-url http://localhost:8002 \
+      --repo-path /path/to/sample-python-repo \
+      --repo-type sample_repo
    ```
 
 3. Review the evaluation results in the `evaluation_results` directory
@@ -450,6 +450,21 @@ A sample Python repository is included at `/sample-python-repo` to test the syst
 - `order_processor.py`: A service for processing customer orders
 - `database.py`: A mock database implementation for testing
 
+### Generating the Sample Python Repository
+
+You can generate the sample Python repository using the included script:
+
+```bash
+# Clone this repository if you haven't already
+git clone https://github.com/your-username/mcp-code-qa-project.git
+cd mcp-code-qa-project
+
+# Run the script to generate the sample repository
+python -m scripts.generate_sample_repo
+```
+
+This will create a `sample-python-repo` directory with all the necessary files for testing.
+
 You can use this sample repo to test the system with questions like:
 
 ```
@@ -461,6 +476,8 @@ How does method process_payment use parameter payment_method?
 ## Testing
 
 We've tested the system using both the CLI and server approaches. The CLI interface provides immediate results and is recommended for initial testing. The server provides the full MCP protocol implementation necessary for agent integration.
+
+> **Note:** The Grip dataset used for evaluation can be found at: https://github.com/joeyespo/grip/tree/master
 
 Example test results show the system correctly identifies class purposes, implementation details, and parameter usage from the codebase.
 
