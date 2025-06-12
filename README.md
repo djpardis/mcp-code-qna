@@ -1,6 +1,6 @@
-# MCP Code Repository Question Answering
+# MCP Server for Code Repository Q&A
 
-This project implements a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that answers questions about a local code repository using a Retrieval-Augmented Generation (RAG) system.
+This project implements an MCP-compliant server that answers questions about local code repositories using a Retrieval-Augmented Generation (RAG) system.
 
 ## Features
 
@@ -16,25 +16,26 @@ This project implements a [Model Context Protocol (MCP)](https://modelcontextpro
 ### Prerequisites
 
 - Python 3.9+
-- A local Python repository to analyze
+- A local code repository to analyze (Python repositories recommended)
 
 ### Installation
 
 1. Clone this repository
 2. Install dependencies using one of the following methods:
 
-   **Option 1: Using requirements.txt (Basic)**
+   **Option 1: Using pip with requirements.txt (Basic)**
    ```bash
-   python3 -m pip install -r requirements.txt
+   python -m pip install -r requirements.txt
+   python -m spacy download en_core_web_sm
    ```
    
-   **Option 2: Using setup.py (Recommended)**
+   **Option 2: Using pip with pyproject.toml (Recommended)**
    ```bash
-   python3 -m pip install -e .
+   python -m pip install -e .
+   python scripts/install_nlp_models.py
    ```
-   This will install all dependencies and additional components like the spaCy language model.
-
-   > **Note:** This project uses `python3 -m pip` instead of standalone `pip` command to ensure compatibility with the correct Python installation. This is the recommended approach by Python packaging authorities as it's more explicit about which Python environment you're installing packages into.
+   
+   This will install the package in development mode with all dependencies and the required spaCy language model.
 
 ### Running the MCP Server
 
@@ -278,6 +279,8 @@ For production use, aim for an MQS of 7 or higher.
 - **Average Response Time**: 0.20s
 - **Error Rate**: 60.00%
 
+*Note: These results are from the latest evaluation as of June 2025.*
+
 The web UI provides:
 - A simple form to enter your questions
 - A repository path input field to specify which code repository to analyze
@@ -286,7 +289,7 @@ The web UI provides:
 - Connection status indicator
 - Sample questions to try
 
-#### Simple CLI Interface
+#### CLI Interface
 
 ```bash
 # Start the server
@@ -308,17 +311,15 @@ Options:
 
 The project also offers more detailed ways to interact with the code QA system:
 
-#### Option 1: CLI Direct Questions
+#### CLI Direct Questions
 
-For quick testing and direct usage without starting a server:
+For quick testing without starting a server:
 
 ```bash
 python3 -m app.cli --repo_path /path/to/your/repo ask "What does class UserService do?"
 ```
 
-This will output the answer directly in your terminal.
-
-#### Option 2: MCP Server (Recommended)
+#### MCP Server (Recommended)
 
 Start the MCP server for API access and agent integration:
 
@@ -444,28 +445,24 @@ The MCP Server consists of three main components:
 
 ## Sample Repository
 
-A sample Python repository is included at `/sample-python-repo` to test the system. It contains:
+A sample Python repository is included to test the system. It contains:
 
-- `user_service.py`: A service for user management and authentication
-- `order_processor.py`: A service for processing customer orders
-- `database.py`: A mock database implementation for testing
+- `user_service.py`: User management and authentication service
+- `order_processor.py`: Customer order processing service
+- `database.py`: Mock database implementation
 
-### Generating the Sample Python Repository
-
-You can generate the sample Python repository using the included script:
+### Generating the Sample Repository
 
 ```bash
 # Clone this repository if you haven't already
 git clone https://github.com/djpardis/mcp-code-qna.git
 cd mcp-code-qna
 
-# Run the script to generate the sample repository
+# Generate the sample repository
 python -m scripts.generate_sample_repo
 ```
 
-This will create a `sample-python-repo` directory with all the necessary files for testing.
-
-You can use this sample repo to test the system with questions like:
+Example questions to try:
 
 ```
 What does class UserService do?
@@ -475,11 +472,11 @@ How does method process_payment use parameter payment_method?
 
 ## Testing
 
-We've tested the system using both the CLI and server approaches. The CLI interface provides immediate results and is recommended for initial testing. The server provides the full MCP protocol implementation necessary for agent integration.
+The system has been tested using both CLI and server approaches:
+- CLI interface: Provides immediate results, recommended for initial testing
+- Server approach: Implements the full MCP protocol for agent integration
 
-> **Note:** The Grip dataset used for evaluation can be found at: https://github.com/joeyespo/grip/tree/master
-
-Example test results show the system correctly identifies class purposes, implementation details, and parameter usage from the codebase.
+> **Note:** The Grip dataset used for evaluation: https://github.com/joeyespo/grip/tree/master
 
 ## Troubleshooting
 
@@ -497,9 +494,13 @@ If you receive an error like `[Errno 48] error while attempting to bind on addre
 
 ### Installation Issues
 
-If you encounter issues with package dependencies, particularly with `huggingface-hub` and `sentence-transformers`, ensure you're using the versions specified in `requirements.txt`. We've pinned specific versions to avoid compatibility issues.
+If you encounter issues with package dependencies, particularly with `huggingface-hub` and `sentence-transformers`, ensure you're using the versions specified in `requirements.txt` or install using `setup.py` as recommended. We've pinned specific versions in both files to avoid compatibility issues.
 
 ## Related Projects
 
 - The MCP Protocol: https://modelcontextprotocol.io/introduction
 - SentenceTransformers: https://sbert.net
+
+## License
+
+MIT
