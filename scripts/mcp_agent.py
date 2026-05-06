@@ -20,18 +20,16 @@ class MCPAgent:
     Agent that uses the MCP server to analyze repositories and generate reports
     """
     
-    def __init__(self, server_url: str, repo_path: str, repo_type: Optional[str] = None):
+    def __init__(self, server_url: str, repo_path: str):
         """
         Initialize the MCP Agent
         
         Args:
             server_url: URL of the MCP server
             repo_path: Path to the repository to analyze
-            repo_type: Type of repository (grip, sample_repo, or other)
         """
         self.server_url = server_url
         self.repo_path = repo_path
-        self.repo_type = repo_type
         self.verify_server_connection()
     
     def verify_server_connection(self) -> None:
@@ -256,26 +254,8 @@ class MCPAgent:
             ]
         }
         
-        # Determine repository type for organizing reports
         repo_name = os.path.basename(self.repo_path)
-        
-        # Use provided repo_type if available, otherwise infer from repo name
-        if self.repo_type:
-            repo_subdir = self.repo_type
-        else:
-            # Map common repository names to subdirectories
-            repo_type_mapping = {
-                "grip": "grip",
-                "grip-no-tests": "grip",
-                "sample-python-repo": "sample_repo",
-                "sample_python_repo": "sample_repo"
-            }
-            
-            # Determine subdirectory based on repo name or use 'other' as default
-            repo_subdir = repo_type_mapping.get(repo_name.lower(), "other")
-        
-        # Create subdirectory if it doesn't exist
-        repo_output_dir = os.path.join(output_dir, repo_subdir)
+        repo_output_dir = output_dir
         os.makedirs(repo_output_dir, exist_ok=True)
         
         # Generate filenames with timestamp
@@ -408,13 +388,11 @@ def main():
     parser.add_argument("--server-url", default="http://localhost:8002", help="URL of the MCP server")
     parser.add_argument("--repo-path", required=True, help="Path to the repository to analyze")
     parser.add_argument("--output-dir", default="reports", help="Directory to save the reports")
-    parser.add_argument("--repo-type", choices=["grip", "sample_repo", "other"], 
-                      help="Type of repository for organizing reports (grip, sample_repo, other)")
     
     args = parser.parse_args()
     
     try:
-        agent = MCPAgent(args.server_url, args.repo_path, args.repo_type)
+        agent = MCPAgent(args.server_url, args.repo_path)
         agent.generate_report(args.output_dir)
     except Exception as e:
         print(f"Error: {e}")

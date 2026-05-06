@@ -31,9 +31,6 @@ python -m app.mcp_web_server --repo-path /path/to/repo
 
 # Dynamic mode — clients pass `repo_path` per request
 python -m app.mcp_web_server
-
-# Custom port (default 8000)
-python -m app.mcp_web_server --repo-path /path/to/repo --port 8002
 ```
 
 ## Ask from the CLI
@@ -45,26 +42,25 @@ python -m app.cli --repo-path /path/to/repo "What does class UserService do?"
 ## HTTP API
 
 ```bash
-# Metadata
-curl http://localhost:8000/.well-known/mcp
+# Get server metadata
+curl -sS <server-url>/.well-known/mcp
 
-# List resources
-curl http://localhost:8000/list_resources
+# List available resources
+curl -sS <server-url>/list_resources
 
-# Ask a question (used by the web UI)
-curl -X POST http://localhost:8000/question \
+# Ask a question
+curl -sS -X POST <server-url>/question \
   -H 'Content-Type: application/json' \
-  -d '{"question": "What does class UserService do?", "repo_path": "/path/to/repo"}'
+  -d '{"question":"What does this repository do?","repo_path":"/path/to/repo"}'
 
-# MCP-style read_resource
-curl -X POST http://localhost:8000/read_resource \
+# Read the MCP "questions" resource
+curl -sS -X POST <server-url>/read_resource \
   -H 'Content-Type: application/json' \
-  -d '{"uri": "questions", "parameters": {"question": "...", "repo_path": "/path/to/repo"}}'
+  -d '{"uri":"questions","parameters":{"question":"Summarize the main service","repo_path":"/path/to/repo"}}'
 ```
 
-OpenAPI docs at <http://localhost:8000/docs>.
-
-`repo_path` may be omitted when the server was started with `--repo-path`.
+Use your running server address for `<server-url>`.
+You can omit `repo_path` in requests when the server was started with a default `--repo-path`.
 
 ## Repository agent
 
@@ -72,13 +68,12 @@ With a server running, generate an architecture/dependency/design-pattern report
 
 ```bash
 python scripts/mcp_agent.py \
-  --server-url http://localhost:8000 \
+  --server-url <server-url> \
   --repo-path /path/to/repo \
-  --repo-type other \
   --output-dir reports
 ```
 
-Output: `reports/<repo-type>/<repo-name>_report_<ts>.{json,md,html}`.
+Output: `reports/<repo-name>_report_<ts>.{json,md,html}`.
 
 ## Evaluation
 
@@ -86,12 +81,11 @@ Output: `reports/<repo-type>/<repo-name>_report_<ts>.{json,md,html}`.
 
 ```bash
 python evaluation_scripts/run_test_evaluation.py \
-  --server-url http://localhost:8000 \
-  --repo-path /tmp/sample-python-repo \
-  --repo-type sample_repo
+  --server-url <server-url> \
+  --repo-path /tmp/sample-python-repo
 ```
 
-The project includes two question banks: `sample_repo` (for the generated sample repository) and `grip` (for a clone of [joeyespo/grip](https://github.com/joeyespo/grip)). Evaluation results are written to `evaluation_results/<repo-name>_<ts>.json`.
+Evaluation results are written to `evaluation_results/<repo-name>_<ts>.json`.
 
 ## Architecture
 
@@ -140,9 +134,9 @@ scripts/
   generate_sample_repo.py  # writes a tiny demo repo
 evaluation_scripts/
   eval_framework.py        # shared POST + MQS + question banks
-  run_test_evaluation.py   # `--repo-type sample_repo|grip`
-  run_simple_evaluation.py # sample_repo bank only
-  run_comprehensive_evaluation.py  # grip bank only
+  run_test_evaluation.py   # default evaluation question batch
+  run_simple_evaluation.py # sample-repo question batch
+  run_comprehensive_evaluation.py  # Grip-style question batch
 tests/                     # question-understanding tests
 ```
 

@@ -44,12 +44,6 @@ GRIP_QUESTIONS: List[str] = [
     "How does Grip implement caching for API responses?",
 ]
 
-QUESTION_BANKS: Dict[str, List[str]] = {
-    "sample_repo": SAMPLE_REPO_QUESTIONS,
-    "grip": GRIP_QUESTIONS,
-}
-
-
 def post_question(
     question: str,
     server_url: str,
