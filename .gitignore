@@ -20,10 +20,11 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
+# Virtual environments
 venv/
 env/
 ENV/
+.venv/
 
 # IDE
 .idea/
@@ -31,10 +32,13 @@ ENV/
 *.swp
 *.swo
 
-# Project specific
+# Project
 .code_index/
+evaluation_results/
 
 # Local environment
 .env
 .env.local
-evaluation_results/
+
+# OS
+.DS_Store

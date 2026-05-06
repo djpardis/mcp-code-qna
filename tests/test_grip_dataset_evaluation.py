@@ -19,10 +19,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 class GripQAEvaluator:
     """Evaluates MCP Code QA against the grip dataset questions"""
     
-    def __init__(self, qa_dir: str, server_url: str, output_dir: Optional[str] = None):
+    def __init__(
+        self,
+        qa_dir: str,
+        server_url: str,
+        repo_path: Optional[str] = None,
+        output_dir: Optional[str] = None,
+    ):
         """
         Initialize the evaluator
-        
+
         Args:
             qa_dir: Path to the grip_qa directory containing question and answer files
             server_url: URL of the MCP server

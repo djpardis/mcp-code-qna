@@ -64,9 +64,9 @@ class MCPAgent:
                 
         except requests.exceptions.RequestException as e:
             print(f"Error: Could not connect to MCP server at {self.server_url}")
-            print(f"Exception: {str(e)}")
-            print("\nPlease make sure the MCP server is running with:")
-            print(f"  python -m app.mcp_web_server --repo-path {self.repo_path} --port {self.server_url.split(':')[-1]}")
+            print(f"Exception: {e}")
+            print("\nMake sure the MCP server is running, e.g.:")
+            print(f"  python -m app.mcp_web_server --repo-path {self.repo_path}")
             sys.exit(1)
         
         print(f"✓ Successfully connected to MCP server at {self.server_url}")

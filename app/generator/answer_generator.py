@@ -4,7 +4,6 @@ Answer generation component for producing responses to questions about code.
 
 import re
 import logging
-import html
 import json
 import os
 from typing import List, Dict, Any, Optional
@@ -175,19 +174,20 @@ class AnswerGenerator:
         impl_entities = [name for name, entity_type in analysis.entities.items() 
                       if entity_type in (EntityType.FUNCTION, EntityType.METHOD, EntityType.CLASS)]                      
         
+        item_type: Optional[str] = None
+        
         # Fallback to regex if no entities found
         if not impl_entities:
             match = re.search(r'how is (the )?(service|component|function|method) ([\w_]+) implemented', question.lower())
             if match:
                 item_type = match.group(2)
-                item_name = match.group(3)
-                impl_entities = [item_name]
+                impl_entities = [match.group(3)]
         
         if impl_entities:
             item_name = impl_entities[0]
             
             # Find chunks related to this implementation
-            if item_type == "service" or item_type == "component":
+            if item_type in ("service", "component"):
                 # Look for classes or modules
                 impl_chunks = [chunk for chunk in chunks 
                               if chunk.chunk.name.lower() == item_name.lower()]

@@ -22,11 +22,9 @@
             <div class="card-body">
                 <div class="mb-4 repo-path-container">
                     <label for="repoPath" class="form-label">Repository path</label>
-                    <input type="text" class="form-control" id="repoPath" placeholder="/path/to/your/code/repository">
+                    <input type="text" class="form-control" id="repoPath" placeholder="/absolute/path/to/your/repo">
                     <div class="form-text mt-1">
-                        Example paths: 
-                        <a href="#" class="example-path">/Users/pardisnoorzad/Documents/sample-python-repo</a> | 
-                        <a href="#" class="example-path">/Users/pardisnoorzad/Documents/grip-no-tests</a>
+                        Leave blank to use the server's default repository (set with <code>--repo-path</code>).
                     </div>
                 </div>
                 
@@ -59,9 +57,9 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6 class="repo-heading">Grip Repository Questions</h6>
-                        <p class="repo-path-note">Use with: <code>/Users/pardisnoorzad/Documents/grip-no-tests</code></p>
-                        
+                        <h6 class="repo-heading">Grip repository questions</h6>
+                        <p class="repo-path-note">Use against a clone of <a href="https://github.com/joeyespo/grip" target="_blank" rel="noopener">joeyespo/grip</a>.</p>
+
                         <h6 class="mt-3">Usage questions</h6>
                         <div class="sample-question-list">
                             <div>How do I run grip from command line on a specific port?</div>
@@ -92,9 +90,9 @@
                     </div>
                     
                     <div class="col-md-6">
-                        <h6 class="repo-heading">Sample Python Repository Questions</h6>
-                        <p class="repo-path-note">Use with: <code>/Users/pardisnoorzad/Documents/sample-python-repo</code></p>
-                        
+                        <h6 class="repo-heading">Sample Python repository questions</h6>
+                        <p class="repo-path-note">Generate the sample with <code>python scripts/generate_sample_repo.py /tmp/sample-repo</code>.</p>
+
                         <h6 class="mt-3">Statistical questions</h6>
                         <div class="sample-question-list">
                             <div>How many functions are there in the codebase?</div>

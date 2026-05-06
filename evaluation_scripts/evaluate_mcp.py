@@ -18,10 +18,10 @@ import numpy as np
 def run_server(host="127.0.0.1", port=8001, repo_path=None):
     """Start the MCP server in a subprocess"""
     cmd = ["python", "-m", "app.mcp_web_server", "--host", host, "--port", str(port)]
-    
+
     if repo_path:
-        cmd.extend(["--repo_path", repo_path])
-        
+        cmd.extend(["--repo-path", repo_path])
+
     print(f"Starting MCP server: {' '.join(cmd)}")
     return subprocess.Popen(cmd)
 
@@ -161,10 +161,8 @@ def main():
     parser.add_argument("--port", type=int, default=8001, help="Port for the MCP server")
     parser.add_argument("--grip-qa-dir", help="Path to the grip_qa directory")
     parser.add_argument("--sample-qa-dir", help="Path to the sample repository QA directory")
-    parser.add_argument("--grip-repo", default="/Users/pardisnoorzad/Documents/grip-no-tests", 
-                        help="Path to the grip repository")
-    parser.add_argument("--sample-repo", default="/Users/pardisnoorzad/Documents/sample-python-repo", 
-                        help="Path to the sample Python repository")
+    parser.add_argument("--grip-repo", help="Path to the grip repository")
+    parser.add_argument("--sample-repo", help="Path to the sample Python repository")
     parser.add_argument("--output-dir", default="evaluation_results", 
                         help="Base directory to save evaluation results")
     args = parser.parse_args()

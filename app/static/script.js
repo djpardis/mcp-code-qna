@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize components
     checkServer();
     setupEventListeners();
-    setupSampleQuestions();
     
     // Setup markdown renderer
     marked.setOptions({
@@ -73,38 +72,14 @@ function setupEventListeners() {
         }
     });
     
-    // Make example repository paths clickable
-    document.querySelectorAll('.example-path').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            repoPath.value = this.textContent;
-        });
-    });
-    
-    // Make sample questions clickable
+    // Make sample questions clickable: copy text into the question field.
     document.querySelectorAll('.sample-question-list div').forEach(item => {
+        item.style.cursor = 'pointer';
         item.addEventListener('click', function() {
             question.value = this.textContent;
             question.focus();
-            
-            // Find the closest repo-path-note and extract the path
-            const repoSection = this.closest('.col-md-6');
-            if (repoSection) {
-                const pathNote = repoSection.querySelector('.repo-path-note code');
-                if (pathNote) {
-                    repoPath.value = pathNote.textContent;
-                }
-            }
         });
-        
-        // Add cursor pointer style
-        item.style.cursor = 'pointer';
     });
-}
-
-// Sample questions are now just for display
-function setupSampleQuestions() {
-    // No click functionality needed
 }
 
 // Submit question to server

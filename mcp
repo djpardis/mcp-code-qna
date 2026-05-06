@@ -1,107 +1,63 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Thin wrapper around the Python entry points.
+#
+#   ./mcp serve [REPO_PATH] [--port PORT] [--host HOST] [--rebuild]
+#   ./mcp ask   REPO_PATH "your question"
+set -euo pipefail
 
-# MCP Code QA - Simple CLI wrapper
+show_help() {
+  cat <<'EOF'
+mcp - simple wrapper around the MCP code-QA tools
 
-REPO_PATH=""
-PORT="8000"
-HOST="0.0.0.0"
-REBUILD=false
+Usage:
+  mcp serve [repo_path] [--port PORT] [--host HOST] [--rebuild]
+  mcp ask   repo_path "question"
 
-# Display help message
-function show_help {
-  echo "MCP Code QA - Simple CLI"
-  echo ""
-  echo "Usage:"
-  echo "  ./mcp serve [repo_path] [options]    Start the MCP server"
-  echo "  ./mcp ask [repo_path] \"question\"     Ask a question directly"
-  echo ""
-  echo "Options:"
-  echo "  -p, --port PORT     Specify server port (default: 8000)"
-  echo "  -h, --host HOST     Specify host (default: 0.0.0.0)"
-  echo "  -r, --rebuild       Force rebuild index"
-  echo "  --help              Show this help message"
-  echo ""
-  echo "Examples:"
-  echo "  ./mcp serve ./my-repo -p 8001"
-  echo "  ./mcp ask ./my-repo \"What does class UserService do?\""
+Options:
+  --port PORT     Server port (default: 8000)
+  --host HOST     Bind host  (default: 0.0.0.0)
+  --rebuild       Force rebuild of the index
+  -h, --help      Show this help
+
+Examples:
+  mcp serve ./my-repo --port 8001
+  mcp ask   ./my-repo "What does class UserService do?"
+EOF
 }
 
-# Process arguments
-COMMAND=$1
-shift
-
-if [[ "$COMMAND" == "--help" || -z "$COMMAND" ]]; then
+if [[ $# -eq 0 || "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   show_help
   exit 0
 fi
 
-if [[ -z "$1" ]]; then
-  echo "Error: Repository path is required"
-  show_help
-  exit 1
-fi
+command=$1; shift
 
-REPO_PATH=$1
-shift
-
-# Process additional arguments
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    -p|--port)
-      PORT="$2"
-      shift 2
-      ;;
-    -h|--host)
-      HOST="$2"
-      shift 2
-      ;;
-    -r|--rebuild)
-      REBUILD=true
-      shift
-      ;;
-    --help)
+case "$command" in
+  serve)
+    repo_path=""
+    if [[ $# -gt 0 && "$1" != --* ]]; then
+      repo_path=$1; shift
+    fi
+    args=()
+    if [[ -n "$repo_path" ]]; then
+      args+=(--repo-path "$repo_path")
+    fi
+    args+=("$@")
+    exec python3 -m app.mcp_web_server "${args[@]}"
+    ;;
+  ask)
+    if [[ $# -lt 2 ]]; then
+      echo "Error: 'ask' requires a repo path and a question" >&2
       show_help
-      exit 0
-      ;;
-    *)
-      # For the 'ask' command, the remaining argument is the question
-      if [[ "$COMMAND" == "ask" ]]; then
-        QUESTION="$1"
-        shift
-      else
-        echo "Unknown option: $1"
-        show_help
-        exit 1
-      fi
-      ;;
-  esac
-done
-
-# Execute the appropriate command
-if [[ "$COMMAND" == "serve" ]]; then
-  # Use the new mcp_web_server.py directly
-  CMD="python3 app/mcp_web_server.py \"$REPO_PATH\" --port $PORT --host $HOST"
-  
-  if [[ "$REBUILD" == "true" ]]; then
-    CMD="$CMD --rebuild"
-  fi
-  
-  echo "Starting MCP server for repository: $REPO_PATH"
-  echo "Server will be available at http://$HOST:$PORT"
-  eval "$CMD"
-  
-elif [[ "$COMMAND" == "ask" ]]; then
-  if [[ -z "$QUESTION" ]]; then
-    echo "Error: Question is required for the 'ask' command"
+      exit 1
+    fi
+    repo_path=$1; shift
+    question=$1; shift
+    exec python3 -m app.cli --repo-path "$repo_path" "$question" "$@"
+    ;;
+  *)
+    echo "Unknown command: $command" >&2
     show_help
     exit 1
-  fi
-  
-  echo "Asking: $QUESTION"
-  python3 -m app.cli --repo_path "$REPO_PATH" ask "$QUESTION"
-  
-else
-  echo "Unknown command: $COMMAND"
-  show_help
-  exit 1
-fi
+    ;;
+esac

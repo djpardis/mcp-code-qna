@@ -1,36 +1,36 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mcp-code-qa"
-version = "0.1.0"
-description = "MCP Code QA Project"
-authors = [
-    {name = "MCP Team"}
-]
+name = "mcp-code-qna"
+version = "0.2.0"
+description = "MCP-style server that answers questions about a local Python code repository."
 readme = "README.md"
 requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "djpardis" }]
 dependencies = [
-    "fastapi==0.104.1",
-    "uvicorn==0.24.0",
-    "pydantic==2.4.2",
-    "langchain==0.0.312",
-    "langchain_community==0.0.16",
-    "sentence-transformers==2.2.2",
-    "huggingface-hub==0.19.4",
-    "faiss-cpu==1.7.4",
-    "pyparsing==3.1.1",
-    "ast-comments==1.0.1",
-    "libcst==1.1.0",
-    "spacy>=3.5.0",
-    "textblob>=0.17.1",
-    "python-dotenv==1.0.0",
-    "numpy>=1.22.0",
+    "fastapi>=0.110,<1",
+    "uvicorn>=0.29,<1",
+    "pydantic>=2.4,<3",
+    "sentence-transformers>=2.2,<3",
+    "faiss-cpu>=1.7,<2",
+    "spacy>=3.7,<4",
+    "textblob>=0.17,<1",
+    "numpy>=1.22",
+    "requests>=2.28",
 ]
 
-[project.scripts]
-mcp = "app.mcp_web_server:main"
+[project.optional-dependencies]
+eval = ["matplotlib>=3.6"]
 
-[tool.setuptools]
-packages = ["app"]
+[project.scripts]
+mcp-server = "app.mcp_web_server:main"
+mcp-ask = "app.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/djpardis/mcp-code-qna"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

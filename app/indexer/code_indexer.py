@@ -8,15 +8,20 @@ import json
 import pickle
 import hashlib
 import numpy as np
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass, field, asdict
 
-import libcst as cst
-from libcst.metadata import PositionProvider
 from sentence_transformers import SentenceTransformer
 import faiss
 
+_SKIP_WALK_DIRS = frozenset({
+    ".git", ".code_index", "__pycache__", "venv", ".venv", "env",
+    ".mypy_cache", ".pytest_cache", "node_modules", "dist", "build",
+})
 
+
+def _prune_walk_dirs_inplace(dirs: List[str]) -> None:
+    dirs[:] = sorted(d for d in dirs if d not in _SKIP_WALK_DIRS and not d.startswith("."))
 @dataclass
 class CodeChunk:
     """Class representing a logical chunk of code with metadata"""
@@ -98,34 +103,32 @@ class PythonCodeVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.current_class = old_class
     
-    def visit_FunctionDef(self, node):
-        """Visit a function definition node"""
+    def _emit_function_like(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> None:
         docstring = self.get_docstring(node)
         content = self.get_source_segment(node)
-        
-        chunk = CodeChunk(
-            id=self.create_chunk_id(
-                "method" if self.current_class else "function",
-                node.name,
-                self.file_path
-            ),
-            file_path=self.file_path,
-            type="method" if self.current_class else "function",
-            name=node.name,
-            content=content,
-            docstring=docstring,
-            start_line=node.lineno,
-            end_line=node.end_lineno,
-            parent_name=self.current_class
+        kind = "method" if self.current_class else "function"
+        self.chunks.append(
+            CodeChunk(
+                id=self.create_chunk_id(kind, node.name, self.file_path),
+                file_path=self.file_path,
+                type=kind,
+                name=node.name,
+                content=content,
+                docstring=docstring,
+                start_line=node.lineno,
+                end_line=node.end_lineno or node.lineno,
+                parent_name=self.current_class,
+            )
         )
-        self.chunks.append(chunk)
-        
-        # Visit children
         self.generic_visit(node)
-    
+
+    def visit_FunctionDef(self, node):
+        """Visit a function definition node"""
+        self._emit_function_like(node)
+
     def visit_AsyncFunctionDef(self, node):
-        """Visit an async function definition node"""
-        self.visit_FunctionDef(node)  # Reuse the same logic
+        """Visit an async function definition node."""
+        self._emit_function_like(node)
 
 
 class CodeIndexer:
@@ -146,19 +149,18 @@ class CodeIndexer:
         os.makedirs(self.index_dir, exist_ok=True)
     
     def get_python_files(self) -> List[str]:
-        """Find all Python files in the repository"""
-        python_files = []
-        for root, _, files in os.walk(self.repo_path):
-            for file in files:
-                if file.endswith(".py"):
-                    full_path = os.path.join(root, file)
-                    # Skip the index directory and any virtual environments
-                    if (self.index_dir in full_path or
-                        "venv" in full_path or 
-                        "env" in full_path or 
-                        "__pycache__" in full_path):
-                        continue
-                    python_files.append(full_path)
+        """Find all Python files in the repository."""
+        python_files: List[str] = []
+        abs_index = os.path.abspath(self.index_dir)
+        for root, dirs, files in os.walk(self.repo_path):
+            _prune_walk_dirs_inplace(dirs)
+            for name in files:
+                if not name.endswith(".py"):
+                    continue
+                full_path = os.path.join(root, name)
+                if os.path.abspath(full_path).startswith(abs_index + os.sep):
+                    continue
+                python_files.append(full_path)
         return python_files
     
     def process_file(self, file_path: str) -> List[CodeChunk]:

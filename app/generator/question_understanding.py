@@ -1,20 +1,16 @@
-"""
-Question understanding component for analyzing and classifying questions about code.
-Uses TextBlob and spaCy for better NLP processing.
-"""
+"""Question intent classification and lightweight entity extraction (spaCy + regex)."""
 
 import re
 import logging
 from enum import Enum, auto
-from typing import Dict, Set, List, Tuple, Optional
+from typing import Dict, Tuple, Optional
 
-# Import NLP libraries
-import spacy
 try:
     from textblob import TextBlob
 except ImportError:
-    # Fallback if TextBlob is not installed
     TextBlob = None
+
+import spacy
 
 
 class QuestionIntent(Enum):
@@ -83,94 +79,13 @@ class QuestionUnderstanding:
         
         # Initialize spaCy NLP pipeline
         try:
-            # Try to load the spaCy model
             self.nlp = spacy.load("en_core_web_sm")
             self.logger.info("Loaded spaCy model successfully")
-        except IOError:
-            # If model isn't downloaded, download it
-            self.logger.warning("SpaCy model not found, trying to create a blank model")
+        except OSError:
+            self.logger.warning("SpaCy model en_core_web_sm not found — using blank pipeline")
             self.nlp = spacy.blank("en")
-        
-        # Define intent patterns - these will complement spaCy's capabilities
-        self.intent_patterns = {
-            # Purpose questions
-            r'what (does|is) (the )?(class|function|method|module) ([\w_]+)( do| for)?\??': QuestionIntent.PURPOSE,
-            r'what (does|is) (\w+)( do| for)?\??': QuestionIntent.PURPOSE,
-            r'(what is|explain) the purpose of ([\w_]+)\??': QuestionIntent.PURPOSE,
-            r'what is ([\w_]+) used for\??': QuestionIntent.PURPOSE,
-            
-            # Implementation questions
-            r'how (does|is) (the )?(class|function|method|module|service|component) ([\w_]+) (work|implemented)\??': QuestionIntent.IMPLEMENTATION,
-            r'how (does|is) ([\w_]+) (work|implemented)\??': QuestionIntent.IMPLEMENTATION,
-            r'(explain|show) (me )?how ([\w_]+) (works|is implemented)\??': QuestionIntent.IMPLEMENTATION,
-            
-            # Parameter usage questions
-            r'how (does|is) (the )?(parameter|argument) ([\w_]+) used in ([\w_]+)\??': QuestionIntent.PARAMETER_USAGE,
-            r'how does ([\w_]+) use (the )?(parameter|argument) ([\w_]+)\??': QuestionIntent.PARAMETER_USAGE,
-            r'what (does|is) ([\w_]+) do with (the )?(parameter|argument) ([\w_]+)\??': QuestionIntent.PARAMETER_USAGE,
-            
-            # Method listing questions
-            r'what (methods|functions) (does|do) (the )?(class|module) ([\w_]+) have\??': QuestionIntent.METHOD_LISTING,
-            r'list (all )?(the )?(methods|functions) (in|of) ([\w_]+)\??': QuestionIntent.METHOD_LISTING,
-            r'what (are|is) the (methods|functions) (in|of) ([\w_]+)\??': QuestionIntent.METHOD_LISTING,
-            
-            # Statistics questions
-            r'how many (functions|methods|classes|modules|files) (are there|exist)( in total| overall)?\??': QuestionIntent.STATISTICS,
-            r'count (the )?(number of|all) (functions|methods|classes|modules|files)\??': QuestionIntent.STATISTICS,
-            r'what is the (total|overall) (count|number) of (functions|methods|classes|modules|files)\??': QuestionIntent.STATISTICS,
-        }
-        
-        # Intent classification keywords - for spaCy-based classification
-        self.intent_keywords = {
-            QuestionIntent.PURPOSE: [
-                "purpose", "point", "what", "do", "does", "goal", "designed", "why", "role", "aim", "function"
-            ],
-            QuestionIntent.IMPLEMENTATION: [
-                "how", "implement", "built", "created", "structure", "work", "algorithm", "mechanism", "approach"
-            ],
-            QuestionIntent.PARAMETER_USAGE: [
-                "parameter", "argument", "input", "how", "use", "passed", "uses", "param", "arg"
-            ],
-            QuestionIntent.METHOD_LISTING: [
-                "methods", "functions", "list", "what methods", "available methods", "what functions", "has methods"
-            ],
-            QuestionIntent.CODE_WALKTHROUGH: [
-                "explain", "walk through", "step by step", "describe", "detail", "walkthrough"
-            ],
-            QuestionIntent.USAGE_EXAMPLE: [
-                "example", "how to use", "sample", "usage", "how do I", "show me", "demonstrate"
-            ],
-            QuestionIntent.ERROR_HANDLING: [
-                "error", "exception", "handle", "failure", "when it fails", "catch", "try except"
-            ],
-            QuestionIntent.DESIGN_PATTERN: [
-                "pattern", "design", "architecture", "structure", "paradigm", "model", "mvc", "mvvm"
-            ],
-            QuestionIntent.DEPENDENCY: [
-                "dependency", "depend", "require", "library", "module", "import", "package", "needs"
-            ],
-            QuestionIntent.STATISTICS: [
-                "how many", "count", "number", "total", "statistics", "quantity", "sum", "overall", "amount"
-            ],
-        }
-        
-        # Add entity patterns to spaCy pipeline
+
         self._add_code_entity_patterns()
-        
-        # Common nonsense or filler words to detect invalid questions
-        self.nonsense_words = {
-            "blah", "foo", "bar", "baz", "qux", "asdf", "jkl", "xyz", "abc", 
-            "lorem", "ipsum", "dolor", "amet", "consectetur", "adipiscing", "elit"
-        }
-        
-        # Code-related terms that valid questions might contain
-        self.code_terms = {
-            "code", "function", "method", "class", "variable", "parameter", 
-            "module", "library", "api", "interface", "implementation", "algorithm",
-            "data", "structure", "object", "instance", "property", "attribute",
-            "component", "service", "model", "view", "controller", "exception",
-            "error", "bug", "debug", "test", "file", "import", "export", "return"
-        }
     
     def _add_code_entity_patterns(self):
         """Add code entity patterns to spaCy's pipeline for custom entity recognition"""
@@ -213,7 +128,7 @@ class QuestionUnderstanding:
         normalized_text = " ".join([token.text.lower() for token in doc if not token.is_punct]).strip()
         
         # Detect intent
-        intent, confidence = self._detect_intent(doc, normalized_text, blob)
+        intent, confidence = self._detect_intent(normalized_text, blob)
         analysis.intent = intent
         analysis.confidence = confidence
         
@@ -250,28 +165,9 @@ class QuestionUnderstanding:
         # This ensures all reasonable questions are accepted
         return True, None
     
-    def _detect_intent(self, doc, normalized_text: str, blob=None) -> Tuple[QuestionIntent, float]:
-        """
-        Detect the intent of a question using NLP and pattern matching.
-        Uses TextBlob for sentiment and subjectivity analysis if available.
-        
-        Args:
-            doc: spaCy processed document
-            normalized_text: Normalized question text
-            blob: TextBlob object if available
-            
-        Returns:
-            Tuple of (intent, confidence)
-        """
+    def _detect_intent(self, normalized_text: str, blob=None) -> Tuple[QuestionIntent, float]:
+        """Heuristic intent detection from keywords and regex."""
         question_lower = normalized_text.lower()
-        
-        # Use TextBlob for additional NLP features if available
-        sentiment_score = 0
-        if blob is not None:
-            # TextBlob provides sentiment analysis which can help determine question intent
-            sentiment_score = blob.sentiment.polarity
-        
-        # Check for statistical questions first
         if ('how many' in question_lower or 
             'count' in question_lower or 
             'number of' in question_lower or 
