@@ -1,17 +1,17 @@
 # mcp-code-qna
 
-A small [Model Context Protocol](https://modelcontextprotocol.io)–style server that answers questions about a local Python repository.
+A small [Model Context Protocol](https://modelcontextprotocol.io)-style server that answers questions about local code repositories.
 
-It AST-parses the repo, embeds each class/function/method with [SentenceTransformers](https://sbert.net), retrieves with FAISS, and generates Markdown answers using intent-specific templates (purpose, implementation, parameter usage, error handling, statistics, etc.).
+It parses code into chunks, embeds each class/function/method with [SentenceTransformers](https://sbert.net), retrieves with FAISS, and generates concise Markdown answers using intent-specific templates (purpose, implementation, parameter usage, error handling, statistics, and more).
 
-## How It Works (Briefly)
+## How it works
 
 1. You provide a repository path and ask a question.
 2. The server indexes source files into code chunks (functions/classes/methods) and stores vector embeddings.
 3. For normal Q&A, it retrieves the most relevant chunks with FAISS similarity search, then generates a concise answer.
-4. For direct analysis questions (stats, framework detection, repo purpose), it uses deterministic repository scanning/fallback logic.
+4. For direct analysis questions (stats, framework detection, repository purpose), it uses deterministic repository scanning and fallback logic.
 
-## Quickstart
+## Quick start
 
 ```bash
 pip install -e .
@@ -20,8 +20,6 @@ python -m spacy download en_core_web_sm
 python scripts/generate_sample_repo.py /tmp/sample-python-repo
 python -m app.mcp_web_server --repo-path /tmp/sample-python-repo
 ```
-
-Open <http://localhost:8000> and ask "What does class `UserService` do?".
 
 > The first run downloads a SentenceTransformer model (~270 MB) and caches it.
 
@@ -70,7 +68,7 @@ OpenAPI docs at <http://localhost:8000/docs>.
 
 ## Repository agent
 
-With a server running, generate an architecture / dependency / design-pattern report in JSON, Markdown, and HTML:
+With a server running, generate an architecture/dependency/design-pattern report in JSON, Markdown, and HTML:
 
 ```bash
 python scripts/mcp_agent.py \
@@ -84,7 +82,7 @@ Output: `reports/<repo-type>/<repo-name>_report_<ts>.{json,md,html}`.
 
 ## Evaluation
 
-`run_test_evaluation.py` runs a fixed question set against the server and reports an **MCP Quality Score** (MQS) on a 0–10 scale, weighted 70% pass rate / 30% response time.
+`run_test_evaluation.py` runs a fixed question set against the server and reports an **MCP Quality Score** (MQS) on a 0-10 scale, weighted 70% pass rate and 30% response time.
 
 ```bash
 python evaluation_scripts/run_test_evaluation.py \
@@ -93,7 +91,7 @@ python evaluation_scripts/run_test_evaluation.py \
   --repo-type sample_repo
 ```
 
-Two question banks ship: `sample_repo` (for the generated repo above) and `grip` (for a clone of [joeyespo/grip](https://github.com/joeyespo/grip)). Results are written to `evaluation_results/<repo-name>_<ts>.json`.
+The project includes two question banks: `sample_repo` (for the generated sample repository) and `grip` (for a clone of [joeyespo/grip](https://github.com/joeyespo/grip)). Evaluation results are written to `evaluation_results/<repo-name>_<ts>.json`.
 
 ## Architecture
 
@@ -110,24 +108,24 @@ question ─► QuestionUnderstanding (intent + entities, spaCy)
               answer
 ```
 
-The indexer caches embeddings and the FAISS index in `<repo>/.code_index/`, so subsequent runs against the same repo are fast.
+The indexer caches embeddings and the FAISS index in `<repo>/.code_index/`, so subsequent runs against the same repository are faster.
 
-## Works Best With
+## Works best with
 
 - **Python repos**: strongest support (AST chunking + retrieval).
 - **JS/TS repos**: basic-to-good support for Q&A and stats.
 - **Template-heavy sites** (`.html`, `.htm`, `.njk`): stats include template macros and inline `<script>` JS.
 - **Mixed repos**: generally fine, but retrieval quality depends on how much source code vs assets/docs the repo contains.
 
-## Known Issues / Limits
+## Known issues and limits
 
-- **Stats are heuristic for non-Python**: JS/TS/template counts use regex patterns, so totals are approximate.
-- **Template repositories** can have many asset/doc files; file-type distribution may dominate output.
-- **Very large repos**: first index build can be slow due to embedding generation.
-- **Non-code folders** (asset backups, media dumps) can still be selected; output will be low-signal by design.
-- **No full multi-language parser yet**: Python is parsed via AST; JS/TS/template stats are not full semantic parses.
+- Statistics for non-Python repositories are heuristic, because JS/TS/template counts use regex patterns and may be approximate.
+- Template-heavy repositories may include many asset and documentation files, so file-type distribution can dominate results.
+- Very large repositories can take longer on first run because embedding generation and indexing are compute-heavy.
+- Non-code folders (for example, asset backups or media dumps) can still be selected, which may produce low-signal answers.
+- The project does not yet include a full multi-language parser; Python uses AST parsing, while JS/TS/template analysis remains heuristic.
 
-## Layout
+## Project layout
 
 ```
 app/
@@ -148,13 +146,6 @@ evaluation_scripts/
 tests/                     # question-understanding tests
 ```
 
-## Troubleshooting
-
-- **First run is slow.** SentenceTransformer downloads ~270 MB on first use.
-- **Port already in use.** Pass `--port 8001`, or `lsof -i :8000` to find the offender.
-- **`OSError: en_core_web_sm`.** Run `python -m spacy download en_core_web_sm`.
-- **`No repository path provided`.** Pass `--repo-path` to the server, or include `repo_path` in each request.
-
 ## License
 
-MIT.
+This project is released under the MIT License. See `LICENSE` for details.
