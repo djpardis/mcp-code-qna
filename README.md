@@ -4,6 +4,13 @@ A small [Model Context Protocol](https://modelcontextprotocol.io)–style server
 
 It AST-parses the repo, embeds each class/function/method with [SentenceTransformers](https://sbert.net), retrieves with FAISS, and generates Markdown answers using intent-specific templates (purpose, implementation, parameter usage, error handling, statistics, etc.).
 
+## How It Works (Briefly)
+
+1. You provide a repository path and ask a question.
+2. The server indexes source files into code chunks (functions/classes/methods) and stores vector embeddings.
+3. For normal Q&A, it retrieves the most relevant chunks with FAISS similarity search, then generates a concise answer.
+4. For direct analysis questions (stats, framework detection, repo purpose), it uses deterministic repository scanning/fallback logic.
+
 ## Quickstart
 
 ```bash
@@ -104,6 +111,21 @@ question ─► QuestionUnderstanding (intent + entities, spaCy)
 ```
 
 The indexer caches embeddings and the FAISS index in `<repo>/.code_index/`, so subsequent runs against the same repo are fast.
+
+## Works Best With
+
+- **Python repos**: strongest support (AST chunking + retrieval).
+- **JS/TS repos**: basic-to-good support for Q&A and stats.
+- **Template-heavy sites** (`.html`, `.htm`, `.njk`): stats include template macros and inline `<script>` JS.
+- **Mixed repos**: generally fine, but retrieval quality depends on how much source code vs assets/docs the repo contains.
+
+## Known Issues / Limits
+
+- **Stats are heuristic for non-Python**: JS/TS/template counts use regex patterns, so totals are approximate.
+- **Template repositories** can have many asset/doc files; file-type distribution may dominate output.
+- **Very large repos**: first index build can be slow due to embedding generation.
+- **Non-code folders** (asset backups, media dumps) can still be selected; output will be low-signal by design.
+- **No full multi-language parser yet**: Python is parsed via AST; JS/TS/template stats are not full semantic parses.
 
 ## Layout
 

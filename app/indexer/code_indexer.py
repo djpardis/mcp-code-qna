@@ -299,8 +299,10 @@ class CodeIndexer:
     
     def search(self, query: str, k: int = 5) -> List[CodeChunk]:
         """Search the index for chunks relevant to the query"""
-        if not self.index:
-            raise ValueError("Index not built or loaded")
+        # Repositories with no Python files produce no chunks; return
+        # an empty result instead of raising a 500 at the API layer.
+        if not self.index or not self.chunks:
+            return []
         
         # Create query embedding
         query_embedding = self.embedding_model.encode([query])[0]

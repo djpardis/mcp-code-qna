@@ -346,10 +346,15 @@ class QuestionUnderstanding:
         
         # Use TextBlob for noun phrase extraction if available and we haven't found entities yet
         if not entities and blob is not None:
-            for phrase in blob.noun_phrases:
-                # Clean up the phrase and check if it looks like a code identifier
+            # TextBlob noun phrase extraction requires optional NLTK corpora.
+            # If unavailable, skip this step instead of failing the request.
+            try:
+                noun_phrases = blob.noun_phrases
+            except Exception:
+                noun_phrases = []
+            for phrase in noun_phrases:
                 clean_phrase = phrase.replace(' ', '')
-                if (len(clean_phrase) > 2 and 
+                if (len(clean_phrase) > 2 and
                     re.match(r'^[a-zA-Z][a-zA-Z0-9_]*$', clean_phrase) and
                     clean_phrase.lower() not in common_words):
                     entities[clean_phrase] = self._guess_entity_type(clean_phrase)

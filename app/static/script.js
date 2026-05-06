@@ -3,6 +3,8 @@
 // Main variables
 const API_URL = window.location.origin;
 let connectionStatus, statusText, question, repoPath, loading, resultContainer, answerElement;
+let repoPicker, repoFilter, refreshRepos;
+let allRepoCandidates = [];
 
 // Initialize when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -11,12 +13,16 @@ document.addEventListener('DOMContentLoaded', function() {
     statusText = document.getElementById('statusText');
     question = document.getElementById('question');
     repoPath = document.getElementById('repoPath');
+    repoPicker = document.getElementById('repoPicker');
+    repoFilter = document.getElementById('repoFilter');
+    refreshRepos = document.getElementById('refreshRepos');
     loading = document.getElementById('loading');
     resultContainer = document.getElementById('resultContainer');
     answerElement = document.getElementById('answer');
     
     // Initialize components
     checkServer();
+    loadRepoCandidates();
     setupEventListeners();
     
     // Setup markdown renderer
@@ -80,6 +86,63 @@ function setupEventListeners() {
             question.focus();
         });
     });
+
+    if (repoPicker) {
+        repoPicker.addEventListener('change', function() {
+            if (repoPicker.value) {
+                repoPath.value = repoPicker.value;
+            }
+        });
+        repoPicker.addEventListener('dblclick', function() {
+            if (repoPicker.value) {
+                repoPath.value = repoPicker.value;
+                question.focus();
+            }
+        });
+    }
+
+    if (repoFilter) {
+        repoFilter.addEventListener('input', renderRepoCandidates);
+    }
+
+    if (refreshRepos) {
+        refreshRepos.addEventListener('click', loadRepoCandidates);
+    }
+}
+
+async function loadRepoCandidates() {
+    if (!repoPicker) return;
+    try {
+        const response = await fetch(`${API_URL}/list_repo_candidates`);
+        if (!response.ok) return;
+        const data = await response.json();
+        allRepoCandidates = data.repos || [];
+        renderRepoCandidates();
+    } catch (e) {
+        console.error('Could not load repo candidates:', e);
+    }
+}
+
+function renderRepoCandidates() {
+    if (!repoPicker) return;
+    const filter = (repoFilter?.value || '').toLowerCase().trim();
+    repoPicker.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = allRepoCandidates.length
+        ? 'Choose a folder from Documents...'
+        : 'No folders found';
+    repoPicker.appendChild(placeholder);
+
+    allRepoCandidates
+        .filter(path => !filter || path.toLowerCase().includes(filter))
+        .forEach(path => {
+            const option = document.createElement('option');
+            option.value = path;
+            option.textContent = path;
+            repoPicker.appendChild(option);
+        });
 }
 
 // Submit question to server
@@ -125,6 +188,8 @@ async function submitQuestion() {
                 const errorData = await response.json();
                 if (errorData.error) {
                     errorText += ' - ' + errorData.error;
+                } else if (errorData.detail) {
+                    errorText += ' - ' + errorData.detail;
                 }
             } catch (e) {
                 // Could not parse error response as JSON

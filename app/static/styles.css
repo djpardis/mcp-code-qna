@@ -36,6 +36,11 @@
     padding-bottom: 0.25rem;
 }
 
+#repoPicker {
+    font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.85rem;
+}
+
 .sample-questions-card .card-header {
     background-color: #26c6da;
     color: #fff;
