@@ -22,13 +22,12 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install package
+      - name: Install
         run: uv sync --extra dev --python ${{ matrix.python-version }}
 
-      - name: Lint
-        run: uvx ruff check app evaluation_scripts tests
-
-      - name: Test
+      - name: Lint and test
         env:
           MCP_CODE_QNA_LLM_PROVIDER: deterministic
-        run: uv run pytest
+        run: |
+          uvx ruff check app evaluation_scripts tests
+          .venv/bin/python -m pytest
