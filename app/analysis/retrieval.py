@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from app.analysis.evidence import EvidenceItem
 from app.analysis.index import RepositoryIndex, SourceChunk, tokenise
@@ -53,7 +53,7 @@ class RetrievalPlanner:
         self.top_k = top_k
         self._idf = self._build_idf(index.chunks)
 
-    def retrieve(self, question: str, *, top_k: int | None = None) -> RetrievalResult:
+    def retrieve(self, question: str, *, top_k: Optional[int] = None) -> RetrievalResult:
         limit = top_k or self.top_k
         query_tokens = [tok for tok in tokenise(question) if tok not in STOPWORDS]
         query_type = self._classify(question, query_tokens)

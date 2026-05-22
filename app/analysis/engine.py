@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ from app.analysis.retrieval import RetrievalPlanner
 class AnalysisEngine:
     """Build indexes, retrieve evidence, and generate grounded answers."""
 
-    def __init__(self, provider: LLMProvider | None = None) -> None:
+    def __init__(self, provider: Optional[LLMProvider] = None) -> None:
         self.provider = provider or provider_from_env()
         self._cache: Dict[str, Tuple[RepositoryIndex, RetrievalPlanner]] = {}
 
@@ -104,7 +104,7 @@ class AnalysisEngine:
             info["base_url"] = self.provider.base_url
         return info
 
-    def status(self, repo_path: str | None = None) -> Dict[str, object]:
+    def status(self, repo_path: Optional[str] = None) -> Dict[str, object]:
         provider = self.provider.name
         provider_info = self._provider_info()
         if repo_path:
