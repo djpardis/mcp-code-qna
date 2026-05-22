@@ -26,7 +26,7 @@ jobs:
         run: uv sync --extra dev --python ${{ matrix.python-version }}
 
       - name: Lint
-        run: uv run ruff check app evaluation_scripts tests
+        run: uvx ruff check app evaluation_scripts tests
 
       - name: Test
         env:
