@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install package
+        run: uv sync --extra dev --python ${{ matrix.python-version }}
+
+      - name: Lint
+        run: uv run ruff check app evaluation_scripts tests
+
+      - name: Test
+        env:
+          MCP_CODE_QNA_LLM_PROVIDER: deterministic
+        run: uv run pytest

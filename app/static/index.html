@@ -3,84 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code repository Q&A system</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Code Q&amp;A</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link href="/static/styles.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">Code repository Q&A</h2>
-                <div>
-                    <span class="connection-status connected" id="connectionStatus"></span>
-                    <span id="statusText">MCP server connected</span>
+<div class="layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <img src="/static/logo.svg" alt="" width="32" height="32">
+            <span class="sidebar-brand-name">Code Q&amp;A</span>
+        </div>
+
+        <nav class="sidebar-section">
+            <p class="sidebar-label">Repository</p>
+            <input type="text" class="ctrl-input" id="repoPath" placeholder="/path/to/repo">
+            <div class="ctrl-row mt-1">
+                <input type="text" class="ctrl-input" id="repoFilter" placeholder="Filter…">
+                <button class="ctrl-icon-btn" id="refreshRepos" title="Refresh">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            <select class="ctrl-select mt-1" id="repoPicker" size="5">
+                <option value="">Choose from Documents…</option>
+            </select>
+        </nav>
+
+        <nav class="sidebar-section">
+            <p class="sidebar-label">Status</p>
+            <div class="status-row">
+                <span class="status-dot" id="connectionStatus"></span>
+                <span class="status-row-label" id="statusText">Connecting…</span>
+            </div>
+            <div class="status-grid">
+                <div class="status-cell">
+                    <span class="status-key">Mode</span>
+                    <span class="status-val" id="modeStatus">—</span>
+                </div>
+                <div class="status-cell">
+                    <span class="status-key">Provider</span>
+                    <span class="status-val" id="providerStatus">—</span>
+                </div>
+                <div class="status-cell">
+                    <span class="status-key">Parsed</span>
+                    <span class="status-val" id="indexStatus">—</span>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="mb-4 repo-path-container">
-                    <label for="repoPath" class="form-label">Repository path</label>
-                    <input type="text" class="form-control" id="repoPath" placeholder="/absolute/path/to/your/repo">
-                    <div class="input-group mt-2">
-                        <input type="text" class="form-control" id="repoFilter" placeholder="Filter folders...">
-                        <button class="btn btn-outline-secondary" type="button" id="refreshRepos">Refresh</button>
-                    </div>
-                    <div class="input-group mt-2">
-                        <select class="form-select" id="repoPicker" size="6">
-                            <option value="">Choose a folder from Documents...</option>
-                        </select>
-                    </div>
-                    <div class="form-text mt-1">
-                        Click a folder to use it, or paste a full path.
-                    </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+                <i class="bi bi-moon"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ── Main ── -->
+    <main class="main">
+        <!-- Chat history -->
+        <div class="chat" id="chatHistory">
+            <div class="chat-empty" id="chatEmpty">
+                <div class="chat-empty-icon">
+                    <img src="/static/logo.svg" alt="" width="48" height="48" style="opacity:.35">
                 </div>
-                
-                <div class="mb-3">
-                    <label for="question" class="form-label">Question</label>
-                    <textarea class="form-control" id="question" rows="3" placeholder="Type your question then press Enter ↩ to submit."></textarea>
+                <p class="chat-empty-hint">Ask anything about the selected repository</p>
+                <div class="suggestions">
+                    <button class="suggestion">What does this codebase do?</button>
+                    <button class="suggestion">Walk me through the main entry point</button>
+                    <button class="suggestion">What are the most important classes and what do they do?</button>
+                    <button class="suggestion">How is data passed between modules?</button>
+                    <button class="suggestion">Where are the API endpoints defined?</button>
+                    <button class="suggestion">What external services or APIs does this depend on?</button>
+                    <button class="suggestion">How is configuration handled?</button>
+                    <button class="suggestion">Which files would I edit to add a new feature?</button>
                 </div>
             </div>
         </div>
-        
-        <div class="loading" id="loading">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Processing your question... This may take a minute for large repositories.</p>
+
+        <!-- Input -->
+        <div class="input-bar">
+            <textarea id="question" rows="2" placeholder="Ask a question… (Enter to send, Shift+Enter for newline)"></textarea>
         </div>
+    </main>
 
-        <div class="result-container" id="resultContainer" style="display: none;">
-            <div class="card">
-                <div class="card-body">
-                    <div id="answer"></div>
-                </div>
-            </div>
-        </div>
+</div>
 
-        <div class="card sample-questions-card mt-4">
-            <div class="card-header">
-                <h5 class="mb-0">Example questions</h5>
-            </div>
-            <div class="card-body">
-                <div class="sample-question-list">
-                    <div>What functions are in this repository?</div>
-                    <div>What classes are in this repository?</div>
-                    <div>Explain the purpose of the main service class</div>
-                    <div>How is authentication implemented?</div>
-                    <div>Where is error handling done?</div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/script.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+<script src="/static/script.js"></script>
 </body>
 </html>

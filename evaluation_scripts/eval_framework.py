@@ -1,4 +1,4 @@
-"""Shared helpers for MCP server evaluation scripts (question banks, HTTP, MQS)."""
+"""Shared helpers for local-first evidence evaluation scripts."""
 
 from __future__ import annotations
 
@@ -9,39 +9,16 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import difflib
-import requests
 
-# Question banks aligned with tests/test_sample_repo_question_understanding.py and Grip smoke list.
 SAMPLE_REPO_QUESTIONS: List[str] = [
-    "How many functions are there in the codebase?",
-    "Count the number of classes in the project",
-    "What does the processData function do?",
-    "Explain the purpose of UserManager class",
-    "How is the authentication system implemented?",
-    "What methods does the FileHandler class have?",
-    "How do I use the connect_database function?",
-    "Explain the user_authentication_service",
-    "What does the UserAuthenticationService do?",
-    "Explain the userAuthenticationService",
-]
-
-GRIP_QUESTIONS: List[str] = [
-    "How do I run grip from command line on a specific port?",
-    "Can I modify and distribute the Grip software, and are there any conditions I need to follow?",
-    "What command-line arguments does grip accept?",
-    "How do I install grip and its dependencies?",
-    "How can I use grip to preview a specific markdown file?",
-    "What is ReadmeNotFoundError exception? Please give a usage example.",
-    "DirectoryReader - please explain the purpose of the class.",
-    "What is the purpose of the app.py file?",
-    "What does the render_content function do?",
-    "What is the purpose of the path_type function?",
-    "How does Grip handle the rendering of GitHub-style task lists?",
-    "How does Grip handle GitHub API authentication for rate limiting?",
-    "How does Grip parse command line arguments?",
-    "How does Grip handle different markdown flavors?",
-    "What is the implementation of the export feature?",
-    "How does Grip implement caching for API responses?",
+    "What does this repository do?",
+    "What does UserService do?",
+    "Where is authentication implemented?",
+    "What does Database do?",
+    "What does OrderProcessor do?",
+    "What files provide the main behavior?",
+    "What dependencies does this project declare?",
+    "How does user creation work?",
 ]
 
 def post_question(
@@ -52,6 +29,8 @@ def post_question(
     timeout: float = 60.0,
 ) -> Tuple[Dict[str, Any], float]:
     """POST to `/question`; return ``(body, elapsed_seconds)``."""
+    import requests
+
     started = time.perf_counter()
     payload: Dict[str, Any] = {"question": question}
     if repo_path:
@@ -94,6 +73,63 @@ def calculate_mqs(results: List[Dict[str, Any]]) -> Dict[str, float]:
         "error_rate": round(err_rate, 2),
         "time_score": round(time_score, 2),
         "error_score": round(err_score, 2),
+    }
+
+
+def calculate_quality_metrics(results: List[Dict[str, Any]]) -> Dict[str, float]:
+    """Evaluate grounded-answer quality signals exposed by the v2 API."""
+    if not results:
+        return {
+            "quality_score": 0.0,
+            "citation_rate": 0.0,
+            "evidence_rate": 0.0,
+            "groundedness_score": 0.0,
+            "abstention_rate": 0.0,
+            "avg_response_time": 0.0,
+        }
+
+    total = len(results)
+    cited = 0
+    evidenced = 0
+    grounded = 0
+    abstained = 0
+    complete = 0
+    for row in results:
+        answer = (row.get("answer") or "").lower()
+        citations = row.get("citations") or []
+        evidence = row.get("evidence") or []
+        if citations:
+            cited += 1
+        if evidence:
+            evidenced += 1
+        if evidence and citations:
+            grounded += 1
+        if "insufficient evidence" in answer or "could not find enough" in answer:
+            abstained += 1
+        if len(answer.split()) >= 25 or abstained:
+            complete += 1
+
+    citation_rate = cited / total
+    evidence_rate = evidenced / total
+    groundedness = grounded / total
+    completeness = complete / total
+    abstention_rate = abstained / total
+    avg_rt = sum(r["response_time_seconds"] for r in results) / total
+    quality = (
+        citation_rate * 0.25
+        + evidence_rate * 0.25
+        + groundedness * 0.25
+        + completeness * 0.15
+        + max(0.0, 1.0 - min(avg_rt / 10.0, 1.0)) * 0.10
+    ) * 10.0
+    return {
+        "quality_score": round(quality, 2),
+        "citation_rate": round(citation_rate, 2),
+        "evidence_rate": round(evidence_rate, 2),
+        "groundedness_score": round(groundedness, 2),
+        "answer_completeness": round(completeness, 2),
+        "abstention_rate": round(abstention_rate, 2),
+        "avg_response_time": round(avg_rt, 2),
     }
 
 
@@ -147,6 +183,11 @@ def run_question_batch(
             "question": q,
             "answer": ans,
             "response_time_seconds": round(elapsed, 3),
+            "citations": body.get("citations") or [],
+            "evidence": body.get("evidence") or [],
+            "confidence": (body.get("confidence") or body.get("metadata", {}).get("confidence")),
+            "mode": body.get("metadata", {}).get("mode"),
+            "provider": body.get("metadata", {}).get("provider"),
         }
         if reference_answers is not None and i <= len(reference_answers):
             row["similarity"] = similarity_ratio(ans, reference_answers[i - 1])
@@ -154,10 +195,16 @@ def run_question_batch(
         results.append(row)
 
     mqs: Optional[Dict[str, float]] = None
+    quality = calculate_quality_metrics(results)
     if include_mqs and results:
         mqs = calculate_mqs(results)
         print("-" * 60)
         print(f"MQS {mqs['mqs']}/10  errors {mqs['error_rate']:.0%}  avg_rt {mqs['avg_response_time']}s")
+        print(
+            "Quality "
+            f"{quality['quality_score']}/10  citations {quality['citation_rate']:.0%}  "
+            f"evidence {quality['evidence_rate']:.0%}"
+        )
 
     if output_dir and results:
         repo_name = os.path.basename(repo_path) if repo_path else "default"
@@ -169,6 +216,7 @@ def run_question_batch(
         if mqs:
             payload["average_response_time"] = mqs["avg_response_time"]
             payload["mqs"] = mqs
+        payload["quality"] = quality
         path = save_run_report(payload, output_dir, repo_name)
         print(f"Saved {path}")
 

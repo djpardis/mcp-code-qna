@@ -1,36 +1,24 @@
 # Roadmap
 
-Future work, grouped by area. Completed items are no longer tracked here — see git history.
+Future work after the v2 evidence-first rebuild. Completed items are no longer tracked here; see git history and releases.
 
-## Scaling and performance
-- Support repos that don't fit in a single embedding batch (streaming / batched indexing).
-- Cache responses for repeated questions.
-- Incremental re-indexing on file changes.
-- Optional GPU embedding generation.
+## Indexing and retrieval
+- Persist v2 indexes to disk and add incremental re-indexing.
+- Add full parsers for JS/TS and other high-value languages.
+- Add call graph and import graph extraction.
+- Add optional cross-encoder reranking for top evidence.
 
-## Retrieval and answering
-- Hybrid sparse + dense retrieval (BM25 + embeddings).
-- Cross-encoder reranking of top-k results.
-- LLM-backed answer generation (today's templates are deterministic).
-- Citations to specific files / line ranges in answers.
-- Multi-language support beyond Python (TS / Go / Java).
+## Answer quality
+- Add judge-assisted evals for citation correctness and completeness.
+- Add streaming responses for long hosted or local LLM answers.
+- Improve abstention when evidence is low-confidence or contradictory.
 
-## Question understanding
-- Replace regex-driven intent matching with a small classifier.
-- Better entity extraction for code identifiers (especially across naming conventions).
-- Disambiguate questions that reference multiple matching symbols.
+## Product
+- Add saved conversations and exportable evidence reports.
+- Add repository ignore/include controls from the UI.
+- Add authentication and rate limiting for shared deployments.
 
-## Server / API
-- Auth + rate limiting.
-- Streaming responses for long answers.
-- API versioning.
-
-## Evaluation
-- Wire up reference-answer comparison (e.g. against `Modelcode-ai/grip_qa`).
-- Track MQS over time across commits.
-- Per-question-type breakdown of error rate.
-
-## DX
-- Pre-commit hooks (ruff / black).
-- CI (lint + tests).
-- IDE plugins for inline Q&A.
+## Open source
+- Track eval scores across releases.
+- Add more fixture repositories that model real-world project shapes.
+- Publish reproducible release notes for each alpha, beta, and stable version.

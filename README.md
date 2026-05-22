@@ -1,145 +1,81 @@
+<p align="center">
+  <img src="app/static/logo.svg" width="96" height="96" alt="mcp-code-qna logo">
+</p>
+
 # mcp-code-qna
 
-A small [Model Context Protocol](https://modelcontextprotocol.io)-style server that answers questions about local code repositories.
+![CI](https://github.com/djpardis/mcp-code-qna/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-It parses code into chunks, embeds each class/function/method with [SentenceTransformers](https://sbert.net), retrieves with FAISS, and generates concise Markdown answers using intent-specific templates (purpose, implementation, parameter usage, error handling, statistics, and more).
+Ask questions about a code repository and get answers grounded in cited source evidence.
 
-## How it works
-
-1. You provide a repository path and ask a question.
-2. The server indexes source files into code chunks (functions/classes/methods) and stores vector embeddings.
-3. For normal Q&A, it retrieves the most relevant chunks with FAISS similarity search, then generates a concise answer.
-4. For direct analysis questions (stats, framework detection, repository purpose), it uses deterministic repository scanning and fallback logic.
+`mcp-code-qna` retrieves relevant code snippets first, then asks a model to synthesise an answer from that evidence. Every answer includes the source files and line ranges it was derived from. The retrieval always runs locally — only the selected snippets are sent to a hosted model.
 
 ## Quick start
 
-```bash
-pip install -e .
-python -m spacy download en_core_web_sm
-
-python scripts/generate_sample_repo.py /tmp/sample-python-repo
-python -m app.mcp_web_server --repo-path /tmp/sample-python-repo
-```
-
-> The first run downloads a SentenceTransformer model (~270 MB) and caches it.
-
-## Run the server
+Requires [uv](https://docs.astral.sh/uv/):
 
 ```bash
-# With a default repo
-python -m app.mcp_web_server --repo-path /path/to/repo
-
-# Dynamic mode — clients pass `repo_path` per request
-python -m app.mcp_web_server
+brew install uv          # macOS; see docs.astral.sh/uv for other platforms
+uv sync
 ```
 
-## Ask from the CLI
+Configure a model provider (see [LLM providers](#llm-providers)), then:
 
 ```bash
-python -m app.cli --repo-path /path/to/repo "What does class UserService do?"
+uv run mcp-server
 ```
 
-## HTTP API
+Open the URL printed in the terminal, pick a repository, and start asking questions.
+
+## LLM providers
+
+Set `MCP_CODE_QNA_LLM_PROVIDER` before starting the server.
+
+**Local via Ollama:**
 
 ```bash
-# Get server metadata
-curl -sS <server-url>/.well-known/mcp
+brew install ollama
+ollama serve
+ollama pull qwen2.5-coder:7b
 
-# List available resources
-curl -sS <server-url>/list_resources
-
-# Ask a question
-curl -sS -X POST <server-url>/question \
-  -H 'Content-Type: application/json' \
-  -d '{"question":"What does this repository do?","repo_path":"/path/to/repo"}'
-
-# Read the MCP "questions" resource
-curl -sS -X POST <server-url>/read_resource \
-  -H 'Content-Type: application/json' \
-  -d '{"uri":"questions","parameters":{"question":"Summarize the main service","repo_path":"/path/to/repo"}}'
+export MCP_CODE_QNA_LLM_PROVIDER=local
+export MCP_CODE_QNA_LOCAL_MODEL=qwen2.5-coder:7b
+uv run mcp-server
 ```
 
-Use your running server address for `<server-url>`.
-You can omit `repo_path` in requests when the server was started with a default `--repo-path`.
+Any OpenAI-compatible local server works. Override the default Ollama endpoint with `MCP_CODE_QNA_LOCAL_BASE_URL`.
 
-## Repository agent
-
-With a server running, generate an architecture/dependency/design-pattern report in JSON, Markdown, and HTML:
+**Hosted OpenAI-compatible:**
 
 ```bash
-python scripts/mcp_agent.py \
-  --server-url <server-url> \
-  --repo-path /path/to/repo \
-  --output-dir reports
+export MCP_CODE_QNA_LLM_PROVIDER=openai
+export MCP_CODE_QNA_OPENAI_BASE_URL=<base-url>
+export MCP_CODE_QNA_OPENAI_API_KEY=<api-key>
+export MCP_CODE_QNA_OPENAI_MODEL=<model-name>
+uv run mcp-server
 ```
 
-Output: `reports/<repo-name>_report_<ts>.{json,md,html}`.
+## CLI
 
-## Evaluation
-
-`run_test_evaluation.py` runs a fixed question set against the server and reports an **MCP Quality Score** (MQS) on a 0-10 scale, weighted 70% pass rate and 30% response time.
+For one-off questions without starting a server:
 
 ```bash
-python evaluation_scripts/run_test_evaluation.py \
-  --server-url <server-url> \
-  --repo-path /tmp/sample-python-repo
+uv run mcp-ask --repo-path /path/to/repo "What does UserService do?"
 ```
 
-Evaluation results are written to `evaluation_results/<repo-name>_<ts>.json`.
+## Limitations
 
-## Architecture
+**JS/TS symbol extraction is regex-based.** Python uses the AST for accurate symbol boundaries. JS/TS uses regex patterns, which can miss some constructs. The right fix is a [tree-sitter](https://tree-sitter.github.io/) parser.
 
-```
-question ─► QuestionUnderstanding (intent + entities, spaCy)
-                 │
-                 ▼
-            Retriever (FAISS, cosine on SentenceTransformer embeddings)
-                 │
-                 ▼
-            AnswerGenerator (intent-specific Markdown templates)
-                 │
-                 ▼
-              answer
-```
+**Indexes are in-memory and not persisted.** The index is built on first use and dropped on server restart. Large repos can be slow to index.
 
-The indexer caches embeddings and the FAISS index in `<repo>/.code_index/`, so subsequent runs against the same repository are faster.
+**No semantic search.** Retrieval is lexical and symbol-based — it works well when the question shares terms with the code, but can miss conceptual or paraphrased questions.
 
-## Works best with
+**Answer quality depends on the model.** Small local models (7B and below) can give sparse answers on complex architecture questions. Larger hosted models produce noticeably better synthesis.
 
-- **Python repos**: strongest support (AST chunking + retrieval).
-- **JS/TS repos**: basic-to-good support for Q&A and stats.
-- **Template-heavy sites** (`.html`, `.htm`, `.njk`): stats include template macros and inline `<script>` JS.
-- **Mixed repos**: generally fine, but retrieval quality depends on how much source code vs assets/docs the repo contains.
-
-## Known issues and limits
-
-- Statistics for non-Python repositories are heuristic, because JS/TS/template counts use regex patterns and may be approximate.
-- Template-heavy repositories may include many asset and documentation files, so file-type distribution can dominate results.
-- Very large repositories can take longer on first run because embedding generation and indexing are compute-heavy.
-- Non-code folders (for example, asset backups or media dumps) can still be selected, which may produce low-signal answers.
-- The project does not yet include a full multi-language parser; Python uses AST parsing, while JS/TS/template analysis remains heuristic.
-
-## Project layout
-
-```
-app/
-  mcp_web_server.py    # FastAPI server + web UI (entry: `python -m app.mcp_web_server`)
-  cli.py               # one-off CLI Q&A     (entry: `python -m app.cli`)
-  indexer/             # AST parsing + embeddings + FAISS
-  retriever/           # cosine-similarity search
-  generator/           # question understanding + answer templates
-  static/              # web UI assets
-scripts/
-  mcp_agent.py             # repo-analysis agent
-  generate_sample_repo.py  # writes a tiny demo repo
-evaluation_scripts/
-  eval_framework.py        # shared POST + MQS + question banks
-  run_test_evaluation.py   # default evaluation question batch
-  run_simple_evaluation.py # sample-repo question batch
-  run_comprehensive_evaluation.py  # Grip-style question batch
-tests/                     # question-understanding tests
-```
+**File size cap.** Files over 512 KB are skipped. Override with `MCP_CODE_QNA_MAX_FILE_BYTES`.
 
 ## License
 
-This project is released under the MIT License. See `LICENSE` for details.
+MIT. See `LICENSE`.

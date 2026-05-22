@@ -4,26 +4,33 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-code-qna"
-version = "0.2.0"
-description = "MCP-style server that answers questions about a local Python code repository."
+version = "2.0.0a1"
+description = "Evidence-first code repository question answering with local and hosted LLM provider support."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "djpardis" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = [
     "fastapi>=0.110,<1",
     "uvicorn>=0.29,<1",
     "pydantic>=2.4,<3",
-    "sentence-transformers>=2.2,<3",
-    "faiss-cpu>=1.7,<2",
-    "spacy>=3.7,<3.8",
-    "textblob>=0.17,<1",
-    "numpy>=1.22",
     "requests>=2.28",
 ]
 
 [project.optional-dependencies]
-eval = ["matplotlib>=3.6"]
+dev = ["httpx>=0.27", "pytest>=8", "ruff>=0.4"]
 
 [project.scripts]
 mcp-server = "app.mcp_web_server:main"
@@ -34,3 +41,9 @@ Homepage = "https://github.com/djpardis/mcp-code-qna"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]

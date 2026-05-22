@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Thin wrapper around the Python entry points.
+# Thin wrapper around the local-first Python entry points.
 #
 #   ./mcp serve [REPO_PATH] [--port PORT] [--host HOST] [--rebuild]
 #   ./mcp ask   REPO_PATH "your question"
@@ -7,7 +7,7 @@ set -euo pipefail
 
 show_help() {
   cat <<'EOF'
-mcp - simple wrapper around the MCP code-QA tools
+mcp - simple wrapper around the local-first code evidence tools
 
 Usage:
   mcp serve [repo_path] [--port PORT] [--host HOST] [--rebuild]

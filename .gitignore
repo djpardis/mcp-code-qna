@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+.pycache/
 *.py[cod]
 *$py.class
 *.so
@@ -10,6 +11,7 @@ dist/
 downloads/
 eggs/
 .eggs/
+.test-deps/
 lib/
 lib64/
 parts/
@@ -35,10 +37,17 @@ ENV/
 # Project
 .code_index/
 evaluation_results/
+.mcp-code-qna/
+*.sqlite
+*.sqlite3
 
 # Local environment
 .env
 .env.local
+.env.*
+!.env.example
+local-models/
+ollama/
 
 # OS
 .DS_Store

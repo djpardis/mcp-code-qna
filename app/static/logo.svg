@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Code Q and A">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#dbeafe"/>
+      <stop offset="1" stop-color="#ede9fe"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="20" fill="url(#bg)"/>
+  <!-- Handle first so the box covers its top end cleanly -->
+  <line x1="73" y1="71" x2="105" y2="103" stroke="#b45309" stroke-width="10" stroke-linecap="round"/>
+  <!-- Box on top with white fill so handle doesn't bleed through -->
+  <rect x="16" y="14" width="60" height="60" rx="10" fill="white" stroke="#2563eb" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M37 34 l22 10 -22 10" fill="none" stroke="#2563eb" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
