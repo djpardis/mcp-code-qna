@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="app/static/logo.svg" width="96" height="96" alt="mcp-code-qna logo">
-</p>
+<img src="app/static/logo.svg" width="80" height="80" alt="mcp-code-qna logo">
 
 # mcp-code-qna
 
@@ -82,4 +80,4 @@ uv run mcp-ask --repo-path /path/to/repo "What does UserService do?"
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).
