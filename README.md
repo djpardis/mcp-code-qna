@@ -1,11 +1,11 @@
-<img src="app/static/logo.svg" width="80" height="80" alt="mcp-code-qna logo">
+
 
 # mcp-code-qna
 
-![CI](https://github.com/djpardis/mcp-code-qna/actions/workflows/ci.yml/badge.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+CI
+License: MIT
 
-Ask questions about a code repository and get answers grounded in cited source evidence.
+An MCP server for code Q&A. Runs locally with Ollama, or connects to any OpenAI-compatible hosted model.
 
 `mcp-code-qna` retrieves relevant code snippets first, then asks a model to synthesise an answer from that evidence. Every answer includes the source files and line ranges it was derived from. The retrieval always runs locally. Only the selected snippets are sent to a hosted model.
 
