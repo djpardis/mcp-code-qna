@@ -1,9 +1,9 @@
-
+<img src="app/static/logo.svg" width="80" height="80" alt="mcp-code-qna logo">
 
 # mcp-code-qna
 
-CI
-License: MIT
+![CI](https://github.com/djpardis/mcp-code-qna/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 An MCP server for code Q&A. Runs locally with Ollama, or connects to any OpenAI-compatible hosted model.
 
